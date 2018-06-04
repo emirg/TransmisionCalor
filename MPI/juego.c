@@ -204,25 +204,21 @@ int main(int argc, char *argv[])
 	if (hayAlguienArriba)
 	{
 		filaArriba = malloc(sizeof(float) * ancho);
-	
 	}
 
 	if (hayAlguienAbajo)
 	{
 		filaAbajo = malloc(sizeof(float) * ancho);
-		
 	}
 
 	if (hayAlguienIzq)
 	{
 		colIzq = malloc(sizeof(float) * alto);
-	
 	}
 
 	if (hayAlguienDer)
 	{
 		colDer = malloc(sizeof(float) * alto);
-		
 	}
 	//printf("RESERVA BUFFERS ADICIONALES: OK\n");
 
