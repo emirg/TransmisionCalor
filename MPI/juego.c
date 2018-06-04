@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 	int finIteracionFilAb  = ancho;
 
 	//ESTO CAPAZ QUE FUNCIONA PARA CALCULAR TENIENDO EN CUENTA SI ES O NO UN BORDE (Si se habilita eso, cambiar los valores de arriba a 0 y sacar "-1")
-/*	if(i==0){
+	if(i==0){
 		comienzoIteracionColIzq=1;
 		comienzoIteracionColDer=1;
 	}
@@ -198,33 +198,37 @@ int main(int argc, char *argv[])
 	if(j==cantCol-1){
 		finIteracionFilAr=ancho-1;
 		finIteracionFilAb=ancho-1;
-	}*/
+	}
 
 	//fprintf(f, "RESERVANDO BUFFERS ADICIONALES...\n");
 	if (hayAlguienArriba)
 	{
 		filaArriba = malloc(sizeof(float) * ancho);
+		MPI_Request requestArriba;
 	}
 
 	if (hayAlguienAbajo)
 	{
 		filaAbajo = malloc(sizeof(float) * ancho);
+		MPI_Request requestAbajo;
 	}
 
 	if (hayAlguienIzq)
 	{
 		colIzq = malloc(sizeof(float) * alto);
+		MPI_Request requestIzq;
 	}
 
 	if (hayAlguienDer)
 	{
 		colDer = malloc(sizeof(float) * alto);
+		MPI_Request requestDer;
 	}
 	//printf("RESERVA BUFFERS ADICIONALES: OK\n");
 
 	//printf("[%d] Voy a empezar a hacer los send\n",rank);
 
-	MPI_Request request;
+	
 	double tiempo_trans = 0;
 	//POR AHORA TODOS LOS TAGS SON 1. SI ENVIAS UN DATO CON UN TAG, EL QUE LO RECIBE TIENE QUE ESPERAR EL MISMO TAG (SINO SE TRABA)
 	//fprintf(f, "COMENZANDO COMPUTO...\n");
@@ -235,14 +239,14 @@ int main(int argc, char *argv[])
 		if (hayAlguienArriba)
 		{ //Envio de fila a arriba
 			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &request); //Arriba
-			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &request); //Arriba
+			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
 		}
 		// printf("[%d] Ya verifique si tengo a alguien arriba y mande lo corespondiente\n",rank);
 
 		if (hayAlguienAbajo)
 		{ //Envio de fila a abajo
 			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &request);  //Abajo
-			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &request); //Abajo
+			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo); //Abajo
 		}
 		// printf("[%d] Ya verifique si tengo a alguien abajo y mande lo corespondiente\n",rank);
 
@@ -251,14 +255,14 @@ int main(int argc, char *argv[])
 		{ //Envio de columna a derecha   
 			// printf("[%d] Tengo uno a mi derecha\n",rank);
 			MPI_Isend(&matrizOriginal[0][ancho-1], 1, columnaMPI, rankVecinoDerecha, 1, MPI_COMM_WORLD, &request);
-			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &request);
+			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
 		if (hayAlguienIzq)
 		{//Envio de columna a izquierda
 			// printf("[%d] Tengo uno a mi izquierda\n",rank);
 			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &request);
-			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &request);
+			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 		}
 
 		// <!> Temporal <!> //
@@ -282,7 +286,7 @@ int main(int argc, char *argv[])
 		// Luego, habria un for por cada lado que depende de un buffer vecino
 		if (hayAlguienArriba)
 		{  // Fila de arriba
-			MPI_Wait(&request,MPI_STATUS_IGNORE);
+			MPI_Wait(&requestArriba,MPI_STATUS_IGNORE);
 			for (n = comienzoIteracionFilAr; n < finIteracionFilAr; n++)
 			{
 				matrizCopia[0][n] = 
@@ -296,7 +300,7 @@ int main(int argc, char *argv[])
 
 		if (hayAlguienAbajo)
 		{  // Fila de abajo
-			MPI_Wait(&request,MPI_STATUS_IGNORE);
+			MPI_Wait(&requestAbajo,MPI_STATUS_IGNORE);
 			for (n = comienzoIteracionFilAb; n < finIteracionFilAb; n++)
 			{
 				matrizCopia[alto-1][n] = 
@@ -310,8 +314,7 @@ int main(int argc, char *argv[])
 
 		if (hayAlguienDer)
 		{  // Columna derecha
-			MPI_Wait(&request,MPI_STATUS_IGNORE);
-			MPI_Wait(&request,MPI_STATUS_IGNORE);
+			MPI_Wait(&requestDer,MPI_STATUS_IGNORE);
 			for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
 			{
 				matrizCopia[m][ancho-1] = 
@@ -325,6 +328,7 @@ int main(int argc, char *argv[])
 
 		if (hayAlguienIzq)
 		{  // Columna izquierda
+			MPI_Wait(&requestIzq,MPI_STATUS_IGNORE);
 			for (m = comienzoIteracionColIzq; m < finIteracionColIzq; m++)
 			{
 				matrizCopia[m][0] = 
@@ -371,7 +375,8 @@ int main(int argc, char *argv[])
 		free(colDer);
 	}
 
-	//PRINT PARA VER EN EL ARCHIVO LOS RESULTADOS DE LAS SUBMATRICES
+	//PRINT PARA VER LOS RESULTADOS DE LAS SUBMATRICES
+	//if(rank == 0){
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
@@ -380,6 +385,18 @@ int main(int argc, char *argv[])
 		}
 		fprintf(f, "\n");
 	}
+	/*}else{
+		sleep(1);
+		for ( m = 0; m < alto; m++)
+		{
+			for ( n = 0; n < ancho; n++)
+			{
+				printf("%0.1f\t",matrizOriginal[m][n]);
+			}
+			printf("\n");
+		}
+		printf("\n");
+	}*/
 
 	free(matrizCopia);
 	free(matrizOriginal);
