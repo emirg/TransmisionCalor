@@ -9,7 +9,7 @@ typedef enum { false, true } bool;
 
 const float Cx = 0.1;
 const float Cy = 0.1;
-
+//COMENTARIO DE PRUEBA
 // Prototipos: permiten poner las funciones debajo de main
 double sampleTime(void);
 void divisionOptima(int, int*, int*);
