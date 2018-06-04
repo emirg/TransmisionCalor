@@ -25,10 +25,6 @@ int main(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &cantProcesos);
 	MPI_Get_processor_name(processor_name, &namelen);  // nombre del procesador (nodo)
 
-
-	//ACA PONER LOS PRINTS DE LOS RANKS
-	//printf("RANK %d\n",rank );
-
 	if (argc != 3)
 	{
 		if (rank == 0)
