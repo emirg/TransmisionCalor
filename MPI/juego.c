@@ -371,8 +371,7 @@ int main(int argc, char *argv[])
 		free(colDer);
 	}
 
-	//PRINT PARA VER LOS RESULTADOS DE LAS SUBMATRICES
-	//if(rank == 0){
+	//IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
@@ -381,18 +380,6 @@ int main(int argc, char *argv[])
 		}
 		fprintf(f, "\n");
 	}
-	/*}else{
-		sleep(1);
-		for ( m = 0; m < alto; m++)
-		{
-			for ( n = 0; n < ancho; n++)
-			{
-				printf("%0.1f\t",matrizOriginal[m][n]);
-			}
-			printf("\n");
-		}
-		printf("\n");
-	}*/
 
 	free(matrizCopia);
 	free(matrizOriginal);
