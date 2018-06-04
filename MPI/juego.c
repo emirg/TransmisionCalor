@@ -195,30 +195,34 @@ int main(int argc, char *argv[])
 		finIteracionFilAr=ancho-1;
 		finIteracionFilAb=ancho-1;
 	}
-
+	
+	MPI_Request requestArriba;
+	MPI_Request requestAbajo;
+	MPI_Request requestIzq;
+	MPI_Request requestDer;
 	//fprintf(f, "RESERVANDO BUFFERS ADICIONALES...\n");
 	if (hayAlguienArriba)
 	{
 		filaArriba = malloc(sizeof(float) * ancho);
-		MPI_Request requestArriba;
+	
 	}
 
 	if (hayAlguienAbajo)
 	{
 		filaAbajo = malloc(sizeof(float) * ancho);
-		MPI_Request requestAbajo;
+		
 	}
 
 	if (hayAlguienIzq)
 	{
 		colIzq = malloc(sizeof(float) * alto);
-		MPI_Request requestIzq;
+	
 	}
 
 	if (hayAlguienDer)
 	{
 		colDer = malloc(sizeof(float) * alto);
-		MPI_Request requestDer;
+		
 	}
 	//printf("RESERVA BUFFERS ADICIONALES: OK\n");
 
