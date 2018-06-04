@@ -238,14 +238,14 @@ int main(int argc, char *argv[])
 		//LOS SEND Y RECV YA ESTARIAN, HABRIA QUE COMPROBARLO EN EL CLUSTER (LOS PROBE CON UNOS TEST LOCALES - pruebaSend.c)
 		if (hayAlguienArriba)
 		{ //Envio de fila a arriba
-			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &request); //Arriba
+			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
 			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
 		}
 		// printf("[%d] Ya verifique si tengo a alguien arriba y mande lo corespondiente\n",rank);
 
 		if (hayAlguienAbajo)
 		{ //Envio de fila a abajo
-			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &request);  //Abajo
+			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);  //Abajo
 			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo); //Abajo
 		}
 		// printf("[%d] Ya verifique si tengo a alguien abajo y mande lo corespondiente\n",rank);
@@ -254,14 +254,14 @@ int main(int argc, char *argv[])
 		if (hayAlguienDer)
 		{ //Envio de columna a derecha   
 			// printf("[%d] Tengo uno a mi derecha\n",rank);
-			MPI_Isend(&matrizOriginal[0][ancho-1], 1, columnaMPI, rankVecinoDerecha, 1, MPI_COMM_WORLD, &request);
+			MPI_Isend(&matrizOriginal[0][ancho-1], 1, columnaMPI, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
 		if (hayAlguienIzq)
 		{//Envio de columna a izquierda
 			// printf("[%d] Tengo uno a mi izquierda\n",rank);
-			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &request);
+			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 		}
 
