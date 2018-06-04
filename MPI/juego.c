@@ -166,18 +166,18 @@ int main(int argc, char *argv[])
 	float *colDer;
 
 
-	int comienzoIteracionColIzq = 0;
-	int comienzoIteracionColDer = 0;
-	int comienzoIteracionFilAr  = 0;
-	int comienzoIteracionFilAb  = 0;
+	int comienzoIteracionColIzq = 1;
+	int comienzoIteracionColDer = 1;
+	int comienzoIteracionFilAr  = 1;
+	int comienzoIteracionFilAb  = 1;
 
-	int finIteracionColIzq = alto;
-	int finIteracionColDer = alto;
-	int finIteracionFilAr  = ancho;
-	int finIteracionFilAb  = ancho;
+	int finIteracionColIzq = alto-1;
+	int finIteracionColDer = alto-1;
+	int finIteracionFilAr  = ancho-1;
+	int finIteracionFilAb  = ancho-1;
 
-	//ESTO CAPAZ QUE FUNCIONA PARA CALCULAR TENIENDO EN CUENTA SI ES O NO UN BORDE (Si se habilita eso, cambiar los valores de arriba a 0 y sacar "-1")
-	if(i==0){
+	//Segmentation Fault
+	/*if(i==0){
 		comienzoIteracionColIzq=1;
 		comienzoIteracionColDer=1;
 	}
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 	if(j==cantCol-1){
 		finIteracionFilAr=ancho-1;
 		finIteracionFilAb=ancho-1;
-	}
+	}*/
 	
 	MPI_Request requestArriba;
 	MPI_Request requestAbajo;
