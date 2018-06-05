@@ -317,7 +317,7 @@ int main(int argc, char *argv[])
 					matrizOriginal[m][ancho-1] + 
 					Cx * (matrizOriginal[m+1][ancho-1] + 
 					matrizOriginal[m-1][ancho-1] - 2 * matrizOriginal[m][ancho-1]) + 
-					Cy * (colDer[n] + 
+					Cy * (colDer[m] + 
 					matrizOriginal[m][ancho-2] - 2 * matrizOriginal[m][ancho-1]);
 			}
 		}
