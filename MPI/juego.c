@@ -166,18 +166,18 @@ int main(int argc, char *argv[])
 	float *colDer;
 
 
-	int comienzoIteracionColIzq = 1;
-	int comienzoIteracionColDer = 1;
-	int comienzoIteracionFilAr  = 1;
-	int comienzoIteracionFilAb  = 1;
+	int comienzoIteracionColIzq = 1; //Se ve que con esta variable igualada a 0 se va de rango
+	int comienzoIteracionColDer = 1; //Se ve que con esta variable igualada a 0 se va de rango
+	int comienzoIteracionFilAr  = 0; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
+	int comienzoIteracionFilAb  = 0; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
 
-	int finIteracionColIzq = alto-1;
-	int finIteracionColDer = alto-1;
-	int finIteracionFilAr  = ancho-1;
-	int finIteracionFilAb  = ancho-1;
+	int finIteracionColIzq = alto-1; //Se ve que con esta variable igualada a "alto" se va de rango
+	int finIteracionColDer = alto-1; //Se ve que con esta variable igualada a "alto" se va de rango
+	int finIteracionFilAr  = ancho; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
+	int finIteracionFilAb  = ancho; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
 
-	//Segmentation Fault
-	/*if(i==0){
+
+	if(i==0){
 		comienzoIteracionColIzq=1;
 		comienzoIteracionColDer=1;
 	}
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 	if(j==cantCol-1){
 		finIteracionFilAr=ancho-1;
 		finIteracionFilAb=ancho-1;
-	}*/
+	}
 	
 	MPI_Request requestArriba;
 	MPI_Request requestAbajo;
