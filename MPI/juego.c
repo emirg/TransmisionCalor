@@ -158,22 +158,22 @@ int main(int argc, char *argv[])
 	float *colDer;
 
 
-	int comienzoIteracionColIzq = 1; //Se ve que con esta variable igualada a 0 se va de rango
-	int comienzoIteracionColDer = 1; //Se ve que con esta variable igualada a 0 se va de rango
-	int comienzoIteracionFilAr  = 0; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
-	int comienzoIteracionFilAb  = 0; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
+	int comienzoIteracionColIzq = 1; //El primer valor de cualquier columna siempre va a haber sido calculado por una fila
+	int comienzoIteracionColDer = 1; //El primer valor de cualquier columna siempre va a haber sido calculado por una fila
+	int comienzoIteracionFilAr  = 0; //Esta variable podria volverse una ya que la iteracion de las filas es la misma para arriba y para abajo
+	int comienzoIteracionFilAb  = 0; 
 
-	int finIteracionColIzq = alto-1; //Se ve que con esta variable igualada a "alto" se va de rango
-	int finIteracionColDer = alto-1; //Se ve que con esta variable igualada a "alto" se va de rango
-	int finIteracionFilAr  = ancho;  //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
-	int finIteracionFilAb  = ancho;  //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
+	int finIteracionColIzq = alto-1; //El ultimo valor de cualquier columna siempre va a haber sido calculado por una fila
+	int finIteracionColDer = alto-1; //El ultimo valor de cualquier columna siempre va a haber sido calculado por una fila
+	int finIteracionFilAr  = ancho;  //Esta variable podria volverse una ya que la iteracion de las filas es la misma para arriba y para abajo
+	int finIteracionFilAb  = ancho;  
 
 
-	if (i == 0)
+	/*if (i == 0)
 	{
 		comienzoIteracionColIzq = 1;
 		comienzoIteracionColDer = 1;
-	}
+	}*/
 
 	if (j == 0)
 	{
@@ -181,11 +181,11 @@ int main(int argc, char *argv[])
 		comienzoIteracionFilAb = 1;
 	}
 
-	if (i == cantFilas-1)
+	/*if (i == cantFilas-1)
 	{
 		finIteracionColIzq = alto-1;
 		finIteracionColDer = alto-1;
-	}
+	}*/
 
 	if (j == cantCol-1)
 	{
