@@ -285,6 +285,28 @@ int main(int argc, char *argv[])
 					Cy * (matrizOriginal[0][n+1] + 
 					matrizOriginal[0][n-1] - 2 * matrizOriginal[0][n]); 
 			}
+			
+			if(hayAlguienDer){
+				matrizCopia[0][alto-1] = 
+					matrizOriginal[0][alto-1] + 
+					Cx * (matrizOriginal[1][alto-1] + 
+					filaArriba[alto-1] - 2 * matrizOriginal[0][alto-1]) + 
+					Cy * (colDer[0] + 
+					matrizOriginal[0][alto-2] - 2 * matrizOriginal[0][alto-1]); 
+			
+			}
+			
+			if(hayAlguienIzq){
+				matrizCopia[0][0] = 
+					matrizOriginal[0][0] + 
+					Cx * (matrizOriginal[1][alto-1] + 
+					filaArriba[alto-1] - 2 * matrizOriginal[0][0]) + 
+					Cy * (matrizOriginal[0][1] + 
+					colIzq[0] - 2 * matrizOriginal[0][0]); 
+			
+			}
+			
+			
 		}
 
 		if (hayAlguienAbajo)
