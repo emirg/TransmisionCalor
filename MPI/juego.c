@@ -86,12 +86,12 @@ int main(int argc, char *argv[])
 	cantFilasExtra = Tlado % cantFilas;  // Obtenemos las filas adicionales totales que tomarán los procesos 
 	cantColExtra   = Tlado % cantCol;    // Obtenemos las columnas adicionales totales que tomarán los procesos
 
-	if (j < Tlado % cantCol)
+	if (j < cantColExtra)
 	{
 		ancho++;
 	}
 
-	if (i < Tlado % cantFilas)
+	if (i < cantFilasExtra)
 	{
 		alto++;
 	}
@@ -157,16 +157,12 @@ int main(int argc, char *argv[])
 	float *colIzq;
 	float *colDer;
 
-
-	int comienzoIteracionColIzq = 1; //El primer valor de cualquier columna siempre va a haber sido calculado por una fila
 	int comienzoIteracionColDer = 1; //El primer valor de cualquier columna siempre va a haber sido calculado por una fila
 	int comienzoIteracionFilAr  = 0; //Esta variable podria volverse una ya que la iteracion de las filas es la misma para arriba y para abajo
-	int comienzoIteracionFilAb  = 0; 
 
-	int finIteracionColIzq = alto-1; //El ultimo valor de cualquier columna siempre va a haber sido calculado por una fila
 	int finIteracionColDer = alto-1; //El ultimo valor de cualquier columna siempre va a haber sido calculado por una fila
 	int finIteracionFilAr  = ancho;  //Esta variable podria volverse una ya que la iteracion de las filas es la misma para arriba y para abajo
-	int finIteracionFilAb  = ancho;  
+
 
 
 	/*if (i == 0)
@@ -178,7 +174,6 @@ int main(int argc, char *argv[])
 	if (j == 0)
 	{
 		comienzoIteracionFilAr = 1;
-		comienzoIteracionFilAb = 1;
 	}
 
 	/*if (i == cantFilas-1)
@@ -190,7 +185,6 @@ int main(int argc, char *argv[])
 	if (j == cantCol-1)
 	{
 		finIteracionFilAr = ancho-1;
-		finIteracionFilAb = ancho-1;
 	}
 
 	MPI_Request requestArriba;
@@ -296,7 +290,7 @@ int main(int argc, char *argv[])
 		if (hayAlguienAbajo)
 		{  // Fila de abajo
 			MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
-			for (n = comienzoIteracionFilAb; n < finIteracionFilAb; n++)
+			for (n = comienzoIteracionFilAr; n < finIteracionFilAr; n++)
 			{
 				matrizCopia[alto-1][n] = 
 					matrizOriginal[alto-1][n] + 
@@ -324,7 +318,7 @@ int main(int argc, char *argv[])
 		if (hayAlguienIzq)
 		{  // Columna izquierda
 			MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
-			for (m = comienzoIteracionColIzq; m < finIteracionColIzq; m++)
+			for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
 			{
 				matrizCopia[m][0] = 
 					matrizOriginal[m][0] + 
