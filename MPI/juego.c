@@ -19,11 +19,11 @@ int main(int argc, char *argv[])
 	MPI_Init(&argc,&argv);
 
 	int rank, cantProcesos, namelen;
-	char processor_name[MPI_MAX_PROCESSOR_NAME];
+	char nombreNodo[MPI_MAX_PROCESSOR_NAME];
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &cantProcesos);
-	MPI_Get_processor_name(processor_name, &namelen);  // nombre del procesador (nodo)
+	MPI_Get_processor_name(nombreNodo, &namelen);
 
 	if (argc != 3)
 	{
@@ -59,18 +59,13 @@ int main(int argc, char *argv[])
 		exit(3);
 	}
 
-	// int extremo = Tlado-1; // Temporalmente inutilizada
-
 	int q;
-	int i, j; // Variables utilizadas para indicar la posicion de cada submatriz en una matriz imaginaria que permite observar que procesos necesitan comunicarse entre si
-	int alto, ancho; // Variables que determinaran el ancho y alto de cada submatriz
-	int m, n, p; //Variables auxiliares para la iteracion de bucles 
+	int i, j; // Indican la posicion de cada submatriz en una matriz imaginaria que permite observar que procesos necesitan comunicarse entre si
+	int alto, ancho;  // Ancho y alto de cada submatriz
+	int m, n, p;      // Iteracion de bucles 
 	int cantFilas, cantCol; // Variables usadas para determinar en cuantas filas y columnas esta dividida la matriz original (es decir, cantFilas*cantCol = cantProcesos)
 
-	divisionOptima(cantProcesos, &cantFilas, &cantCol);  //Calculamos la division mas optima
-
-	//printf("Filas: %d\nColumnas: %d\n",cantFilas,cantCol); 
-	//(rank,cantCol,cantFoilas) --> (i,j)
+	divisionOptima(cantProcesos, &cantFilas, &cantCol);
 
 	// Posiciones de cada submatriz de acuerdo al rank que le toque a cada proceso
 	i = rank / cantCol;
@@ -86,13 +81,8 @@ int main(int argc, char *argv[])
 		exit(4);
 	}
 
-	bool hayAlguienArriba = i-1 >= 0;
-	bool hayAlguienAbajo  = i+1 < cantFilas;
-	bool hayAlguienIzq    = j-1 >= 0;
-	bool hayAlguienDer    = j+1 < cantCol;
-
-	alto  = Tlado / cantFilas; //Dividimos el alto en la cantidad de filas mas optima
-	ancho = Tlado / cantCol;   //Dividimos el ancho en la cantidad de columnas mas optima
+	alto  = Tlado / cantFilas; // Dividimos el alto en la cantidad de filas mas optima
+	ancho = Tlado / cantCol;   // Dividimos el ancho en la cantidad de columnas mas optima
 
 	if (j < Tlado % cantCol)
 	{
@@ -135,9 +125,8 @@ int main(int argc, char *argv[])
 		matrizOriginal[m] = (*matrizOriginal + ancho * m);
 		matrizCopia[m]    = (*matrizCopia + ancho * m);
 	}
-	//printf("RESERVA DE MEMORIA: OK\n");
+
 	//Inicializo matrizOriginal
-	//printf("INICIALIZANDO...\n");
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
@@ -173,34 +162,44 @@ int main(int argc, char *argv[])
 
 	int finIteracionColIzq = alto-1; //Se ve que con esta variable igualada a "alto" se va de rango
 	int finIteracionColDer = alto-1; //Se ve que con esta variable igualada a "alto" se va de rango
-	int finIteracionFilAr  = ancho; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
-	int finIteracionFilAb  = ancho; //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
+	int finIteracionFilAr  = ancho;  //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
+	int finIteracionFilAb  = ancho;  //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
 
 
-	if(i==0){
-		comienzoIteracionColIzq=1;
-		comienzoIteracionColDer=1;
+	if (i == 0)
+	{
+		comienzoIteracionColIzq = 1;
+		comienzoIteracionColDer = 1;
 	}
 
-	if(j==0){
-		comienzoIteracionFilAr=1;
-		comienzoIteracionFilAb=1;
-	}
-	if(i==cantFilas-1){
-		finIteracionColIzq=alto-1;
-		finIteracionColDer=alto-1;
+	if (j == 0)
+	{
+		comienzoIteracionFilAr = 1;
+		comienzoIteracionFilAb = 1;
 	}
 
-	if(j==cantCol-1){
-		finIteracionFilAr=ancho-1;
-		finIteracionFilAb=ancho-1;
+	if (i == cantFilas-1)
+	{
+		finIteracionColIzq = alto-1;
+		finIteracionColDer = alto-1;
 	}
-	
+
+	if (j == cantCol-1)
+	{
+		finIteracionFilAr = ancho-1;
+		finIteracionFilAb = ancho-1;
+	}
+
 	MPI_Request requestArriba;
 	MPI_Request requestAbajo;
 	MPI_Request requestIzq;
 	MPI_Request requestDer;
-	//fprintf(f, "RESERVANDO BUFFERS ADICIONALES...\n");
+
+	bool hayAlguienArriba = i-1 >= 0;
+	bool hayAlguienAbajo  = i+1 < cantFilas;
+	bool hayAlguienIzq    = j-1 >= 0;
+	bool hayAlguienDer    = j+1 < cantCol;
+
 	if (hayAlguienArriba)
 	{
 		filaArriba = malloc(sizeof(float) * ancho);
@@ -220,11 +219,8 @@ int main(int argc, char *argv[])
 	{
 		colDer = malloc(sizeof(float) * alto);
 	}
-	//printf("RESERVA BUFFERS ADICIONALES: OK\n");
 
-	//printf("[%d] Voy a empezar a hacer los send\n",rank);
 
-	
 	double tiempo_trans = 0;
 	//POR AHORA TODOS LOS TAGS SON 1. SI ENVIAS UN DATO CON UN TAG, EL QUE LO RECIBE TIENE QUE ESPERAR EL MISMO TAG (SINO SE TRABA)
 	//fprintf(f, "COMENZANDO COMPUTO...\n");
@@ -282,7 +278,7 @@ int main(int argc, char *argv[])
 		// Luego, habria un for por cada lado que depende de un buffer vecino
 		if (hayAlguienArriba)
 		{  // Fila de arriba
-			MPI_Wait(&requestArriba,MPI_STATUS_IGNORE);
+			MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
 			for (n = comienzoIteracionFilAr; n < finIteracionFilAr; n++)
 			{
 				matrizCopia[0][n] = 
@@ -296,7 +292,7 @@ int main(int argc, char *argv[])
 
 		if (hayAlguienAbajo)
 		{  // Fila de abajo
-			MPI_Wait(&requestAbajo,MPI_STATUS_IGNORE);
+			MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
 			for (n = comienzoIteracionFilAb; n < finIteracionFilAb; n++)
 			{
 				matrizCopia[alto-1][n] = 
@@ -310,7 +306,7 @@ int main(int argc, char *argv[])
 
 		if (hayAlguienDer)
 		{  // Columna derecha
-			MPI_Wait(&requestDer,MPI_STATUS_IGNORE);
+			MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 			for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
 			{
 				matrizCopia[m][ancho-1] = 
@@ -324,7 +320,7 @@ int main(int argc, char *argv[])
 
 		if (hayAlguienIzq)
 		{  // Columna izquierda
-			MPI_Wait(&requestIzq,MPI_STATUS_IGNORE);
+			MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 			for (m = comienzoIteracionColIzq; m < finIteracionColIzq; m++)
 			{
 				matrizCopia[m][0] = 
@@ -425,41 +421,6 @@ double sampleTime(void)
 
 	return ((double)tv.tv_sec+((double)tv.tv_nsec)/1000000000.0);
 }
-
-/*
-void dividirMatriz(int cantProcesos) // ESTE METODO YA NO SE USA, TODO EL CODIGO SE ENCUENTRA EN EL MAIN
-{
-	int cantFilas, cantCol;
-	divisionOptima(cantProcesos,&cantFilas,&cantCol); //Calculamos la division mas optima
-	printf("Filas: %d\nColumnas: %d\n",cantFilas,cantCol ); 
-
-	//(rank,cantCol,cantFilas) --> (i,j)
-	int i = rank%(cantCol-1);
-	int j = rank/(cantFilas-1);
-
-	int alto  = N/cantFilas; //Dividimos el alto en la cantidad de filas mas optima
-	int ancho = N/cantCol;   //Dividimos el ancho en la cantidad de columnas mas optima
-	if ( N % cantCol < j)
-	{
-		ancho++;
-	}
-
-	if (N % cantFilas < i)
-	{
-		alto++;
-	}
-
-	//int acumuladorAlto  = alto-1;
-	//int acumuladorAncho = ancho-1;
-
-
-	// struct Rango rng;
-	// rng.ranki = i;
-	// rng.rankj = j;
-	// rng.inicioFila = i * alto;
-	// rng.inicioCol = j * ancho;
-}
-*/
 
 /*
 void copiarAArchivo() // NO USAR, SOLO PARA REFERENCIA DE COMO ESCRIBIR EN UN ARCHIVO
