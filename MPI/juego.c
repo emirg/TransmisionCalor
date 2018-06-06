@@ -239,7 +239,13 @@ int main(int argc, char *argv[])
 		}
 		// printf("[%d] Ya verifique si tengo a alguien abajo y mande lo corespondiente\n",rank);
 
-		//ERROR CON EL USO DE VECTORES
+		if (hayAlguienIzq)
+		{//Envio de columna a izquierda
+			// printf("[%d] Tengo uno a mi izquierda\n",rank);
+			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
+			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
+		}
+		
 		if (hayAlguienDer)
 		{ //Envio de columna a derecha   
 			// printf("[%d] Tengo uno a mi derecha\n",rank);
@@ -247,12 +253,7 @@ int main(int argc, char *argv[])
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
-		if (hayAlguienIzq)
-		{//Envio de columna a izquierda
-			// printf("[%d] Tengo uno a mi izquierda\n",rank);
-			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
-			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
-		}
+
 
 		// <!> Temporal <!> //
 		//Estas iteraciones se pueden hacer independientes de los buffers que recibimos, por lo que podriamos solaparlo con la comunicacion
@@ -345,20 +346,6 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		if (hayAlguienDer)
-		{  // Columna derecha
-			MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
-			for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
-			{
-				matrizCopia[m][ancho-1] = 
-					matrizOriginal[m][ancho-1] + 
-					Cx * (matrizOriginal[m+1][ancho-1] + 
-					matrizOriginal[m-1][ancho-1] - 2 * matrizOriginal[m][ancho-1]) + 
-					Cy * (colDer[m] + 
-					matrizOriginal[m][ancho-2] - 2 * matrizOriginal[m][ancho-1]);
-			}
-		}
-
 		if (hayAlguienIzq)
 		{  // Columna izquierda
 			MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
@@ -372,7 +359,20 @@ int main(int argc, char *argv[])
 					colIzq[m] - 2 * matrizOriginal[m][0]);
 			}
 		}
-
+		
+		if (hayAlguienDer)
+		{  // Columna derecha
+			MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
+			for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
+			{
+				matrizCopia[m][ancho-1] = 
+					matrizOriginal[m][ancho-1] + 
+					Cx * (matrizOriginal[m+1][ancho-1] + 
+					matrizOriginal[m-1][ancho-1] - 2 * matrizOriginal[m][ancho-1]) + 
+					Cy * (colDer[m] + 
+					matrizOriginal[m][ancho-2] - 2 * matrizOriginal[m][ancho-1]);
+			}
+		}
 
 
 		// Realizo el cambio de punteros para que matrizOriginal (P) apunte a la nueva matriz (P+1)
@@ -408,7 +408,8 @@ int main(int argc, char *argv[])
 		free(colDer);
 	}
 
-	//IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
+	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
+	// NOTA: PARA EVALUAR TIEMPOS DE EJECUCION SE PODRIA COMENTAR ESTA SECCION 
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
