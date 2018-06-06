@@ -59,11 +59,11 @@ int main(int argc, char *argv[])
 		exit(3);
 	}
 
-	int q;
-	int i, j; // Indican la posicion de cada submatriz en una matriz imaginaria que permite observar que procesos necesitan comunicarse entre si
-	int alto, ancho;  // Ancho y alto de cada submatriz
-	int m, n, p;      // Iteracion de bucles 
-	int cantFilas, cantCol; // Variables usadas para determinar en cuantas filas y columnas esta dividida la matriz original (es decir, cantFilas*cantCol = cantProcesos)
+	int i, j;               // Posición de cada proceso en submatrices de una matriz imaginaria
+	int alto, ancho;        // Ancho y alto de cada submatriz
+	int m, n, p;            // Iteracion de bucles 
+	int cantFilas, cantCol; // División más óptima de una matriz imaginaria en base a la cantidad total de procesos
+	int cantFilasExtra, cantColExtra;
 
 	divisionOptima(cantProcesos, &cantFilas, &cantCol);
 
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 	i = rank / cantCol;
 	j = rank % cantCol;
 
-	char nombre[15];
+	char nombre[30];
 	sprintf(nombre, "subgrid_%d_%d.out", i, j);
 
 	FILE *f = fopen(nombre, "w");
@@ -83,6 +83,8 @@ int main(int argc, char *argv[])
 
 	alto  = Tlado / cantFilas; // Dividimos el alto en la cantidad de filas mas optima
 	ancho = Tlado / cantCol;   // Dividimos el ancho en la cantidad de columnas mas optima
+	cantFilasExtra = Tlado % cantFilas;  // Obtenemos las filas adicionales totales que tomarán los procesos 
+	cantColExtra   = Tlado % cantCol;    // Obtenemos las columnas adicionales totales que tomarán los procesos
 
 	if (j < Tlado % cantCol)
 	{
@@ -127,12 +129,13 @@ int main(int argc, char *argv[])
 	}
 
 	//Inicializo matrizOriginal
+	int x = i*alto  + (i >= cantFilasExtra ? cantFilasExtra : 0);
+	int y = j*ancho + (j >= cantColExtra ? cantColExtra : 0);
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
 		{
-			//matrizOriginal[i][j] = i * (alto - i -1) * j * (ancho - j - 1);  
-			matrizOriginal[m][n] = (i*alto + m) * (Tlado - (i*alto + m) -1) * (j*ancho + n) * (Tlado - (j*ancho + n) - 1);
+			matrizOriginal[m][n] = (x+m) * (Tlado - (x+m) - 1) * (y+n) * (Tlado - (y+n) - 1);
 			matrizCopia[m][n]    = 0;
 			// Donde estan los i y j entre parentesis se deberia cambiar para que cada proceso
 			// inicialice el valor como corresponde
