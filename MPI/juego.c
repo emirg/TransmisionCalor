@@ -289,8 +289,8 @@ int main(int argc, char *argv[])
 			if(hayAlguienIzq){
 				matrizCopia[0][0] = 
 					matrizOriginal[0][0] + 
-					Cx * (matrizOriginal[1][ancho-1] + 
-					filaArriba[ancho-1] - 2 * matrizOriginal[0][0]) + 
+					Cx * (matrizOriginal[1][0] + 
+					filaArriba[0] - 2 * matrizOriginal[0][0]) + 
 					Cy * (matrizOriginal[0][1] + 
 					colIzq[0] - 2 * matrizOriginal[0][0]); 
 			
