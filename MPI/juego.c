@@ -287,6 +287,7 @@ int main(int argc, char *argv[])
 			}
 			
 			if(hayAlguienIzq){
+				MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 				matrizCopia[0][0] = 
 					matrizOriginal[0][0] + 
 					Cx * (matrizOriginal[1][0] + 
@@ -297,6 +298,7 @@ int main(int argc, char *argv[])
 			}
 			
 			if(hayAlguienDer){
+				MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 				matrizCopia[0][ancho-1] = 
 					matrizOriginal[0][ancho-1] + 
 					Cx * (matrizOriginal[1][ancho-1] + 
@@ -321,6 +323,7 @@ int main(int argc, char *argv[])
 			}
 			
 			if(hayAlguienIzq){
+				MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 				matrizCopia[alto-1][0] = 
 					matrizOriginal[alto-1][0] + 
 					Cx * (filaAbajo[0] + 
@@ -331,6 +334,7 @@ int main(int argc, char *argv[])
 			}	
 			
 			if(hayAlguienDer){
+				MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 				matrizCopia[alto-1][ancho-1] = 
 					matrizOriginal[alto-1][ancho-1] + 
 					Cx * (filaAbajo[ancho-1] + 
