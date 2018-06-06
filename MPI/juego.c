@@ -24,12 +24,21 @@ int main(int argc, char *argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &cantProcesos);
 	MPI_Get_processor_name(nombreNodo, &namelen);
-
+	
+	char logNombre[15];
+	sprintf(logNombre, "log_%d.txt", rank);
+	FILE *l = fopen(logNombre, "w");
+	if (l == NULL)
+	{
+		fprintf(l,"ERROR: No se pudo abrir el archivo");
+		exit(4);
+	}
+	
 	if (argc != 3)
 	{
 		if (rank == 0)
 		{
-			printf("ERROR: Cantidad de argumentos invalidos\n");
+			fprintf(l,"ERROR: Cantidad de argumentos invalidos\n");
 		}
 		MPI_Finalize();
 		exit(1);
@@ -43,7 +52,7 @@ int main(int argc, char *argv[])
 	{
 		if (rank == 0)
 		{
-			printf("ERROR: Datos de entrada invalidos\n");
+			fprintf(l,"ERROR: Datos de entrada invalidos\n");
 		}
 		MPI_Finalize();
 		exit(2);
@@ -53,7 +62,7 @@ int main(int argc, char *argv[])
 	{
 		if (rank == 0)
 		{
-			printf("ERROR: Ejecute el algoritmo con al menos 2 procesos\n");
+			fprintf(l,"ERROR: Ejecute el algoritmo con al menos 2 procesos\n");
 		}
 		MPI_Finalize();
 		exit(3);
@@ -67,9 +76,15 @@ int main(int argc, char *argv[])
 
 	divisionOptima(cantProcesos, &cantFilas, &cantCol);
 
+	fprintf(l, "Rank: %d\n",rank );
+	fprintf(l, "Cantidad de procesos: %d\n", cantProcesos);
+	fprintf(l, "Cantidad de filas: %d\n", cantFilas);
+	fprintf(l, "Cantidad de columnas: %d\n", cantCol);
+	
 	// Posiciones de cada submatriz de acuerdo al rank que le toque a cada proceso
 	i = rank / cantCol;
 	j = rank % cantCol;
+	fprintf(l, "(i,j) = (%d,%d)\n", i,j);
 
 	char nombre[30];
 	sprintf(nombre, "subgrid_%d_%d.out", i, j);
@@ -77,7 +92,7 @@ int main(int argc, char *argv[])
 	FILE *f = fopen(nombre, "w");
 	if (f == NULL)
 	{
-		printf("ERROR: No se pudo abrir el archivo");
+		fprintf(l,"ERROR: No se pudo abrir el archivo");
 		exit(4);
 	}
 
@@ -85,7 +100,10 @@ int main(int argc, char *argv[])
 	ancho = Tlado / cantCol;   // Dividimos el ancho en la cantidad de columnas mas optima
 	cantFilasExtra = Tlado % cantFilas;  // Obtenemos las filas adicionales totales que tomarán los procesos 
 	cantColExtra   = Tlado % cantCol;    // Obtenemos las columnas adicionales totales que tomarán los procesos
-
+	fprintf(l, "Tlado: %d\n", Tlado);
+	fprintf(l, "Alto: %d\n",alto);
+	fprintf(l, "Ancho: %d\n",ancho );
+	
 	if (j < Tlado % cantCol)
 	{
 		ancho++;
@@ -95,6 +113,8 @@ int main(int argc, char *argv[])
 	{
 		alto++;
 	}
+	fprintf(l, "Alto actualizado: %d\n",alto);
+	fprintf(l, "Ancho actualizado: %d\n",ancho );
 
 	//Una vez que se tienen los datos, cada nodo deberia reservar memoria acorde a lo que recibio y calcular los iniciales
 	//Antes de empezar a calcular, deberia solicitar los datos de sus vecinos que necesitara (no bloqueante asi puede
@@ -107,7 +127,7 @@ int main(int argc, char *argv[])
 
 
 	//Reservo espacio para la matriz original
-	//printf("RESERVANDO DE MEMORIA...\n");
+	fprintf(l,"RESERVANDO DE MEMORIA...\n");
 	matrizOriginal  = (float **)malloc(sizeof(float *) * alto);
 	*matrizOriginal = (float *)malloc(sizeof(float) * alto * ancho);
 
@@ -117,7 +137,7 @@ int main(int argc, char *argv[])
 
 	if (matrizCopia == NULL || matrizOriginal == NULL)
 	{
-		fprintf(f, "ERROR: Memoria insuficiente\n");
+		fprintf(l, "ERROR: Memoria insuficiente\n");
 		exit(5);
 	}
 
@@ -127,8 +147,9 @@ int main(int argc, char *argv[])
 		matrizOriginal[m] = (*matrizOriginal + ancho * m);
 		matrizCopia[m]    = (*matrizCopia + ancho * m);
 	}
-
+	fprintf(l,"RESERVA DE MEMORIA: OK\n");
 	//Inicializo matrizOriginal
+	fprintf(l,"INICIALIZANDO...\n");
 	int x = i*alto  + (i >= cantFilasExtra ? cantFilasExtra : 0);
 	int y = j*ancho + (j >= cantColExtra ? cantColExtra : 0);
 	for (m = 0; m < alto; m++)
@@ -141,12 +162,16 @@ int main(int argc, char *argv[])
 			// inicialice el valor como corresponde
 		}
 	}
-
+	fprintf(l, "INICIALIZACION: OK\n");
 
 	int rankVecinoArriba    = rank-cantCol;
 	int rankVecinoAbajo     = rank+cantCol;
 	int rankVecinoIzquierda = rank-1;
 	int rankVecinoDerecha   = rank+1;
+	fprintf(l, "Rank arriba: %d\n",rankVecinoArriba );
+	fprintf(l, "Rank abajo: %d\n",rankVecinoAbajo );
+	fprintf(l, "Rank izquierda: %d\n",rankVecinoIzquierda );
+	fprintf(l, "Rank derecha: %d\n",rankVecinoDerecha );
 
 	MPI_Datatype columnaMPI;
 	MPI_Type_vector(alto, 1, ancho, MPI_FLOAT, &columnaMPI);
@@ -168,7 +193,11 @@ int main(int argc, char *argv[])
 	int finIteracionFilAr  = ancho;  //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
 	int finIteracionFilAb  = ancho;  //Habria que tener cuidado a ver si en algun caso pasa lo mismo con esta
 
-
+	fprintf(l, "Iteracion sobre fila arriba: (%d-%d)\n",comienzoIteracionFilAr,finIteracionFilAr);
+	fprintf(l, "Iteracion sobre fila abajo: (%d-%d)\n",comienzoIteracionFilAr,finIteracionFilAb);
+	fprintf(l, "Iteracion sobre columna izquierda: (%d-%d)\n",comienzoIteracionColIzq,finIteracionColIzq);
+	fprintf(l, "Iteracion sobre columna derecha: (%d-%d)\n",comienzoIteracionColDer,finIteracionColDer);
+	
 	if (i == 0)
 	{
 		comienzoIteracionColIzq = 1;
@@ -192,6 +221,11 @@ int main(int argc, char *argv[])
 		finIteracionFilAr = ancho-1;
 		finIteracionFilAb = ancho-1;
 	}
+	
+	fprintf(l, "Iteracion sobre fila arriba actualizado: (%d-%d)\n",comienzoIteracionFilAr,finIteracionFilAr);
+	fprintf(l, "Iteracion sobre fila abajo actualizado: (%d-%d)\n",comienzoIteracionFilAr,finIteracionFilAb);
+	fprintf(l, "Iteracion sobre columna izquierda actualizado: (%d-%d)\n",comienzoIteracionColIzq,finIteracionColIzq);
+	fprintf(l, "Iteracion sobre columna derecha actualizado: (%d-%d)\n",comienzoIteracionColDer,finIteracionColDer);
 
 	MPI_Request requestArriba;
 	MPI_Request requestAbajo;
@@ -202,6 +236,11 @@ int main(int argc, char *argv[])
 	bool hayAlguienAbajo  = i+1 < cantFilas;
 	bool hayAlguienIzq    = j-1 >= 0;
 	bool hayAlguienDer    = j+1 < cantCol;
+	
+	fprintf(l, "Hay alguien arriba: %d\n",hayAlguienArriba);
+	fprintf(l, "Hay alguien abajo: %d\n",hayAlguienAbajo);
+	fprintf(l, "Hay alguien izquierda: %d\n",hayAlguienIzq);
+	fprintf(l, "Hay alguien derecha: %d\n",hayAlguienDer);
 
 	if (hayAlguienArriba)
 	{
@@ -262,7 +301,7 @@ int main(int argc, char *argv[])
 
 		// <!> Temporal <!> //
 		//Estas iteraciones se pueden hacer independientes de los buffers que recibimos, por lo que podriamos solaparlo con la comunicacion
-		// printf("Voy a calcular los elementos internos de la submatriz\n");
+		fprintf(l,"CALCULANDO CELDAS INTERNAS...\n");
 		for (m = 1; m < alto-1; m++) 
 		{
 			for (n = 1; n < ancho-1; n++)
@@ -275,7 +314,7 @@ int main(int argc, char *argv[])
 					matrizOriginal[m][n-1] - 2 * matrizOriginal[m][n]);
 			}
 		}
-		//fprintf(f, "Termine calculando los elemnentos internos\n");
+		fprintf(l, "CELDAS INTERNOS: OK\n");
 
 
 		// Luego, habria un for por cada lado que depende de un buffer vecino
@@ -371,6 +410,7 @@ int main(int argc, char *argv[])
 	}
 
 	//IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
+	fprintf(l, "IMPRIMIENDO MATRIZ FINAL...\n");
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
@@ -379,10 +419,12 @@ int main(int argc, char *argv[])
 		}
 		fprintf(f, "\n");
 	}
-
+	
+	fprintf(l, "LIBERANDO MEMORIA...\n");
 	free(matrizCopia);
 	free(matrizOriginal);
-
+	fprintf(l, "MEMORIA LIBERADA: OK\n");
+	
 	MPI_Finalize();
 
 	return 0;
