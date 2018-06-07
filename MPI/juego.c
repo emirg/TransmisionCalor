@@ -156,36 +156,14 @@ int main(int argc, char *argv[])
 	float *filaAbajo;
 	float *colIzq;
 	float *colDer;
+	
+	//Estas dos variables se podrian quitar y colocarlas directamente en los 'for'
+	int comienzoIteracionColDer = 1; 
+	int comienzoIteracionFilAr  = 1; 
 
-	int comienzoIteracionColDer = 1; //El primer valor de cualquier columna siempre va a haber sido calculado por una fila
-	int comienzoIteracionFilAr  = 1; //Esta variable podria volverse una ya que la iteracion de las filas es la misma para arriba y para abajo
-
-	int finIteracionColDer = alto-1; //El ultimo valor de cualquier columna siempre va a haber sido calculado por una fila
-	int finIteracionFilAr  = ancho-1;  //Esta variable podria volverse una ya que la iteracion de las filas es la misma para arriba y para abajo
-
-
-
-	/*if (i == 0)
-	{
-		comienzoIteracionColIzq = 1;
-		comienzoIteracionColDer = 1;
-	}*/
-
-	if (j == 0)
-	{
-		comienzoIteracionFilAr = 1;
-	}
-
-	/*if (i == cantFilas-1)
-	{
-		finIteracionColIzq = alto-1;
-		finIteracionColDer = alto-1;
-	}*/
-
-	if (j == cantCol-1)
-	{
-		finIteracionFilAr = ancho-1;
-	}
+	//Estas dos variables se podrian quitar y colocarlas directamente en los 'for'
+	int finIteracionColDer = alto-1; 
+	int finIteracionFilAr  = ancho-1;  
 
 	MPI_Request requestArriba;
 	MPI_Request requestAbajo;
@@ -224,20 +202,17 @@ int main(int argc, char *argv[])
 	tiempo_trans = sampleTime();
 	for (p = 0; p < pasos; p++)
 	{
-		//LOS SEND Y RECV YA ESTARIAN, HABRIA QUE COMPROBARLO EN EL CLUSTER (LOS PROBE CON UNOS TEST LOCALES - pruebaSend.c)
 		if (hayAlguienArriba)
 		{ //Envio de fila a arriba
 			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
 			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
 		}
-		// printf("[%d] Ya verifique si tengo a alguien arriba y mande lo corespondiente\n",rank);
 
 		if (hayAlguienAbajo)
 		{ //Envio de fila a abajo
 			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);  //Abajo
 			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo); //Abajo
 		}
-		// printf("[%d] Ya verifique si tengo a alguien abajo y mande lo corespondiente\n",rank);
 
 		if (hayAlguienIzq)
 		{//Envio de columna a izquierda
@@ -254,8 +229,6 @@ int main(int argc, char *argv[])
 		}
 
 
-
-		// <!> Temporal <!> //
 		//Estas iteraciones se pueden hacer independientes de los buffers que recibimos, por lo que podriamos solaparlo con la comunicacion
 		// printf("Voy a calcular los elementos internos de la submatriz\n");
 		for (m = 1; m < alto-1; m++) 
