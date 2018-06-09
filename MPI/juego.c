@@ -74,12 +74,12 @@ int main(int argc, char *argv[])
 	char nombre[30];
 	sprintf(nombre, "subgrid_%d_%d.out", i, j);
 
-	FILE *f = fopen(nombre, "w");
+	/*FILE *f = fopen(nombre, "w");
 	if (f == NULL)
 	{
 		printf("ERROR: No se pudo abrir el archivo");
 		exit(4);
-	}
+	}*/
 
 	alto  = Tlado / cantFilas; // Dividimos el alto en la cantidad de filas mas optima
 	ancho = Tlado / cantCol;   // Dividimos el ancho en la cantidad de columnas mas optima
@@ -383,14 +383,14 @@ int main(int argc, char *argv[])
 
 	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
 	// NOTA: PARA EVALUAR TIEMPOS DE EJECUCION SE PODRIA COMENTAR ESTA SECCION 
-	for (m = 0; m < alto; m++)
+	/*for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
 		{
 			fprintf(f, "%0.1f\t", matrizOriginal[m][n]);
 		}
 		fprintf(f, "\n");
-	}
+	}*/
 
 	free(matrizCopia);
 	free(matrizOriginal);
