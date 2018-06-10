@@ -72,10 +72,10 @@ int main(int argc, char *argv[])
 	i = rank / cantCol;
 	j = rank % cantCol;
 
-	char nombre[30];
-	sprintf(nombre, "subgrid_%d_%d.out", i, j);
+	//char nombre[30];
+	//sprintf(nombre, "subgrid_%d_%d.out", i, j);
 
-	FILE *f = fopen(nombre, "w");
+	FILE *f = fopen("tiempoEjecucion.txt", "w");
 	if (f == NULL)
 	{
 		printf("ERROR: No se pudo abrir el archivo");
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
 
 	if (matrizCopia == NULL || matrizOriginal == NULL)
 	{
-		fprintf(f, "ERROR: Memoria insuficiente\n");
+		printf("ERROR: Memoria insuficiente\n");
 		exit(5);
 	}
 
@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
 
 	tiempo_trans = sampleTime() - tiempo_trans;
 	//printf("COMPUTO FINALIZADO: OK\n");
-	//printf("[%d] Tiempo transcurrido: %.21f\n",rank,tiempo_trans );
+	fprintf(f,"[%d] Tiempo transcurrido: %.21f\n",rank,tiempo_trans );
 	if (hayAlguienArriba)
 	{
 		free(filaArriba);
@@ -393,14 +393,14 @@ int main(int argc, char *argv[])
 
 	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
 	// NOTA: PARA EVALUAR TIEMPOS DE EJECUCION SE PODRIA COMENTAR ESTA SECCION 
-	for (m = 0; m < alto; m++)
+	/*for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
 		{
 			fprintf(f, "%0.1f\t", matrizOriginal[m][n]);
 		}
 		fprintf(f, "\n");
-	}
+	}*/
 
 	free(matrizCopia);
 	free(matrizOriginal);
