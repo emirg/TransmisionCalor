@@ -96,22 +96,20 @@ int main(int argc, char *argv[])
 		alto++;
 	}
 
-	//Una vez que se tienen los datos, cada nodo deberia reservar memoria acorde a lo que recibio y calcular los iniciales
-	//Antes de empezar a calcular, deberia solicitar los datos de sus vecinos que necesitara (no bloqueante asi puede
-	//empezar a calcular y poner una barrera cuando vaya a calcular un valor del cual requiera un vecino)
+	// Una vez que se tienen los datos, cada nodo deberia reservar memoria acorde a lo que recibio y calcular los iniciales
+	// Antes de empezar a calcular, deberia solicitar los datos de sus vecinos que necesitara (no bloqueante asi puede
+	// empezar a calcular y poner una barrera cuando vaya a calcular un valor del cual requiera un vecino)
 
+	float **matrizOriginal; // Puntero a la matriz original
+	float **matrizCopia;    // Puntero a la matriz auxiliar utilizada para copiar los nuevos valores
+	float **aux;            // Puntero auxiliar
 
-	float **matrizOriginal; //Puntero a la matriz original
-	float **matrizCopia;    //Puntero a la matriz auxiliar utilizada para copiar los nuevos valores
-	float **aux;            //Puntero auxiliar
-
-
-	//Reservo espacio para la matriz original
-	//printf("RESERVANDO DE MEMORIA...\n");
+	// Reservo espacio para la matriz original
+	// printf("RESERVANDO DE MEMORIA...\n");
 	matrizOriginal  = (float **)malloc(sizeof(float *) * alto);
 	*matrizOriginal = (float *)malloc(sizeof(float) * alto * ancho);
 
-	//Reservo espacio para la matriz copia
+	// Reservo espacio para la matriz copia
 	matrizCopia  = (float **)malloc(sizeof(float *) * alto);
 	*matrizCopia = (float *)malloc(sizeof(float) * alto * ancho);
 
@@ -121,14 +119,14 @@ int main(int argc, char *argv[])
 		exit(5);
 	}
 
-	//Creo los punteros para cada valor de fila
+	// Creo los punteros para cada valor de fila
 	for (m = 0; m < alto; m++)
 	{
 		matrizOriginal[m] = (*matrizOriginal + ancho * m);
 		matrizCopia[m]    = (*matrizCopia + ancho * m);
 	}
 
-	//Inicializo matrizOriginal
+	// Inicializo matrizOriginal
 	int x = i*alto  + (i >= cantFilasExtra ? cantFilasExtra : 0);
 	int y = j*ancho + (j >= cantColExtra ? cantColExtra : 0);
 	for (m = 0; m < alto; m++)
@@ -137,8 +135,6 @@ int main(int argc, char *argv[])
 		{
 			matrizOriginal[m][n] = (x+m) * (Tlado - (x+m) - 1) * (y+n) * (Tlado - (y+n) - 1);
 			matrizCopia[m][n]    = 0;
-			// Donde estan los i y j entre parentesis se deberia cambiar para que cada proceso
-			// inicialice el valor como corresponde
 		}
 	}
 
@@ -156,19 +152,6 @@ int main(int argc, char *argv[])
 	float *filaAbajo;
 	float *colIzq;
 	float *colDer;
-	
-	//Estas dos variables se podrian quitar y colocarlas directamente en los 'for'
-	int comienzoIteracionColDer = 1; 
-	int comienzoIteracionFilAr  = 1; 
-
-	//Estas dos variables se podrian quitar y colocarlas directamente en los 'for'
-	int finIteracionColDer = alto-1; 
-	int finIteracionFilAr  = ancho-1;  
-
-	MPI_Request requestArriba;
-	MPI_Request requestAbajo;
-	MPI_Request requestIzq;
-	MPI_Request requestDer;
 
 	bool hayAlguienArriba = i-1 >= 0;
 	bool hayAlguienAbajo  = i+1 < cantFilas;
@@ -195,41 +178,42 @@ int main(int argc, char *argv[])
 		colDer = malloc(sizeof(float) * alto);
 	}
 
+	MPI_Request requestArriba;
+	MPI_Request requestAbajo;
+	MPI_Request requestIzq;
+	MPI_Request requestDer;
 
 	double tiempo_trans = 0;
-	//POR AHORA TODOS LOS TAGS SON 1. SI ENVIAS UN DATO CON UN TAG, EL QUE LO RECIBE TIENE QUE ESPERAR EL MISMO TAG (SINO SE TRABA)
-	//fprintf(f, "COMENZANDO COMPUTO...\n");
 	tiempo_trans = sampleTime();
 	for (p = 0; p < pasos; p++)
-	{
+	{  // TODOS LOS TAGS SON 1. SI ENVIAS UN DATO CON UN TAG, EL QUE LO RECIBE TIENE QUE ESPERAR EL MISMO TAG (SINO SE TRABA)
 		if (hayAlguienArriba)
-		{ //Envio de fila a arriba
-			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
-			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
+		{  // Envio de fila a arriba
+			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
+			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
 		}
 
 		if (hayAlguienAbajo)
-		{ //Envio de fila a abajo
-			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);  //Abajo
-			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo); //Abajo
+		{  // Envio de fila a abajo
+			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
+			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
 		}
 
 		if (hayAlguienIzq)
-		{//Envio de columna a izquierda
-			// printf("[%d] Tengo uno a mi izquierda\n",rank);
+		{  // Envio de columna a izquierda
 			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 		}
 		
 		if (hayAlguienDer)
-		{ //Envio de columna a derecha   
-			// printf("[%d] Tengo uno a mi derecha\n",rank);
+		{  // Envio de columna a derecha
 			MPI_Isend(&matrizOriginal[0][ancho-1], 1, columnaMPI, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
 
-		//Estas iteraciones se pueden hacer independientes de los buffers que recibimos, por lo que podriamos solaparlo con la comunicacion
+		// Estas iteraciones se pueden hacer independientes de los buffers que recibimos
+		// por lo que podriamos solaparlo con la comunicacion
 		// printf("Voy a calcular los elementos internos de la submatriz\n");
 		for (m = 1; m < alto-1; m++) 
 		{
@@ -243,8 +227,12 @@ int main(int argc, char *argv[])
 					matrizOriginal[m][n-1] - 2 * matrizOriginal[m][n]);
 			}
 		}
-		//fprintf(f, "Termine calculando los elemnentos internos\n");
-
+		
+		// Estas variables se podrian quitar y colocarlas directamente en los 'for'
+		int comienzoIteracionColDer = 1;
+		int comienzoIteracionFilAr  = 1;
+		int finIteracionColDer      = alto-1;
+		int finIteracionFilAr       = ancho-1;
 
 		// Luego, habria un for por cada lado que depende de un buffer vecino
 		if (hayAlguienArriba)
@@ -269,7 +257,6 @@ int main(int argc, char *argv[])
 					filaArriba[0] - 2 * matrizOriginal[0][0]) + 
 					Cy * (matrizOriginal[0][1] + 
 					colIzq[0] - 2 * matrizOriginal[0][0]); 
-			
 			}
 			
 			if (hayAlguienDer)
@@ -281,7 +268,6 @@ int main(int argc, char *argv[])
 					filaArriba[ancho-1] - 2 * matrizOriginal[0][ancho-1]) + 
 					Cy * (colDer[0] + 
 					matrizOriginal[0][ancho-2] - 2 * matrizOriginal[0][ancho-1]); 
-			
 			}
 		}
 
@@ -293,9 +279,10 @@ int main(int argc, char *argv[])
 				matrizCopia[alto-1][n] = 
 					matrizOriginal[alto-1][n] + 
 					Cx * (filaAbajo[n] + 
-					matrizOriginal[alto-2][n] - 2 * matrizOriginal[alto-1][n]) + //El alto-2 se rompe si se divide por filas y las filas son muy "finas"
+					matrizOriginal[alto-2][n] - 2 * matrizOriginal[alto-1][n]) + 
 					Cy * (matrizOriginal[alto-1][n+1] + 
 					matrizOriginal[alto-1][n-1] - 2 * matrizOriginal[alto-1][n]);
+					// El alto-2 se rompe si se divide por filas y las filas son muy "finas"
 			}
 			
 			if (hayAlguienIzq)
@@ -307,7 +294,6 @@ int main(int argc, char *argv[])
 					matrizOriginal[alto-2][0] - 2 * matrizOriginal[alto-1][0]) + 
 					Cy * (matrizOriginal[alto-1][1] + 
 					colIzq[alto-1] - 2 * matrizOriginal[alto-1][0]); 
-			
 			}	
 			
 			if (hayAlguienDer)
@@ -319,7 +305,6 @@ int main(int argc, char *argv[])
 					matrizOriginal[alto-2][ancho-1] - 2 * matrizOriginal[alto-1][ancho-1]) + 
 					Cy * (colDer[alto-1] + 
 					matrizOriginal[alto-1][ancho-2] - 2 * matrizOriginal[alto-1][ancho-1]); 
-			
 			}
 		}
 
@@ -356,14 +341,11 @@ int main(int argc, char *argv[])
 		matrizOriginal = matrizCopia;
 		matrizCopia    = aux;
 
-		// ANTES DE IR AL SIGUIENTE PASO SE DEBERIA HACER UN WAIT (O ALGO ASI) PARA ESPERAR A LOS OTROS PROCESOS
+		// ESPERA A LOS OTROS PROCESOS
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
-
-
 	tiempo_trans = sampleTime() - tiempo_trans;
-	//printf("COMPUTO FINALIZADO: OK\n");
-	//printf("[%d] Tiempo transcurrido: %.21f\n",rank,tiempo_trans );
+
 	if (hayAlguienArriba)
 	{
 		free(filaArriba);
@@ -385,7 +367,7 @@ int main(int argc, char *argv[])
 	}
 
 	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
-	// NOTA: PARA EVALUAR TIEMPOS DE EJECUCION SE PODRIA COMENTAR ESTA SECCION 
+	// NOTA: PARA EVALUAR TIEMPOS DE EJECUCION SE COMENTA ESTA SECCION 
 	/*for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
@@ -416,7 +398,8 @@ void divisionOptima(int cantProcesos, int *filas, int *columnas)
 			fila_tmp  = i;
 			col_tmp   = cantProcesos / i;
 			distancia = fila_tmp - col_tmp;
-			// termina para evitar repetidos (3x2 == 2x3)
+
+			// Evitar repetidos (3x2 == 2x3)
 			if (distancia < 0)
 			{
 				break;
@@ -439,22 +422,3 @@ double sampleTime(void)
 
 	return ((double)tv.tv_sec+((double)tv.tv_nsec)/1000000000.0);
 }
-
-/*
-void copiarAArchivo() // NO USAR, SOLO PARA REFERENCIA DE COMO ESCRIBIR EN UN ARCHIVO
-{
-	FILE *f = fopen("output.txt", "w");
-	if(f == NULL){
-		printf("ERROR: No se pudo abrir el archivo");
-		exit(1);
-	}
-
-	fprintf(f,"Matriz Final - %d\n", pasos);
-	for (i = 0; i <  Tlado; i++) {
-		for (j = 0; j < Tlado; j++){
-			fprintf(f, "%8.3f \t", matrizOriginal[i][j]);
-		}
-		fprintf(f,"\n");
-	}
-}
-*/
