@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
 	if (matrizCopia == NULL || matrizOriginal == NULL)
 	{
-		fprintf(f, "ERROR: Memoria insuficiente\n");
+		printf("ERROR: Memoria insuficiente\n");
 		exit(5);
 	}
 
@@ -260,7 +260,8 @@ int main(int argc, char *argv[])
 					matrizOriginal[0][n-1] - 2 * matrizOriginal[0][n]); 
 			}
 			
-			if(hayAlguienIzq){
+			if (hayAlguienIzq)
+			{
 				MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 				matrizCopia[0][0] = 
 					matrizOriginal[0][0] + 
@@ -271,7 +272,8 @@ int main(int argc, char *argv[])
 			
 			}
 			
-			if(hayAlguienDer){
+			if (hayAlguienDer)
+			{
 				MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 				matrizCopia[0][ancho-1] = 
 					matrizOriginal[0][ancho-1] + 
@@ -296,7 +298,8 @@ int main(int argc, char *argv[])
 					matrizOriginal[alto-1][n-1] - 2 * matrizOriginal[alto-1][n]);
 			}
 			
-			if(hayAlguienIzq){
+			if (hayAlguienIzq)
+			{
 				MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 				matrizCopia[alto-1][0] = 
 					matrizOriginal[alto-1][0] + 
@@ -307,7 +310,8 @@ int main(int argc, char *argv[])
 			
 			}	
 			
-			if(hayAlguienDer){
+			if (hayAlguienDer)
+			{
 				MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 				matrizCopia[alto-1][ancho-1] = 
 					matrizOriginal[alto-1][ancho-1] + 
@@ -346,7 +350,6 @@ int main(int argc, char *argv[])
 					matrizOriginal[m][ancho-2] - 2 * matrizOriginal[m][ancho-1]);
 			}
 		}
-
 
 		// Realizo el cambio de punteros para que matrizOriginal (P) apunte a la nueva matriz (P+1)
 		aux            = matrizOriginal;
