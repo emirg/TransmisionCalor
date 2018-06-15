@@ -19,12 +19,9 @@ int main(int argc, char *argv[])
 {
 	MPI_Init(&argc,&argv);
 
-	int rank, cantProcesos, namelen;
-	char nombreNodo[MPI_MAX_PROCESSOR_NAME];
-
+	int rank, cantProcesos;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &cantProcesos);
-	MPI_Get_processor_name(nombreNodo, &namelen);
 
 	if (argc != 3)
 	{
@@ -72,10 +69,10 @@ int main(int argc, char *argv[])
 	i = rank / cantCol;
 	j = rank % cantCol;
 
-	//char nombre[30];
-	//sprintf(nombre, "subgrid_%d_%d.out", i, j);
+	char nombre[30];
+	sprintf(nombre, "subgrid_%d_%d.out", i, j);
 
-	FILE *f = fopen("tiempoEjecucion.txt", "w");
+	FILE *f = fopen(nombre, "w");
 	if (f == NULL)
 	{
 		printf("ERROR: No se pudo abrir el archivo");
@@ -97,22 +94,19 @@ int main(int argc, char *argv[])
 		alto++;
 	}
 
-	//Una vez que se tienen los datos, cada nodo deberia reservar memoria acorde a lo que recibio y calcular los iniciales
-	//Antes de empezar a calcular, deberia solicitar los datos de sus vecinos que necesitara (no bloqueante asi puede
-	//empezar a calcular y poner una barrera cuando vaya a calcular un valor del cual requiera un vecino)
+	// Una vez que se tienen los datos, cada nodo deberia reservar memoria acorde a lo que recibio y calcular los iniciales
+	// Antes de empezar a calcular, deberia solicitar los datos de sus vecinos que necesitara (no bloqueante asi puede
+	// empezar a calcular y poner una barrera cuando vaya a calcular un valor del cual requiera un vecino)
+	float **matrizOriginal; // Puntero a la matriz original
+	float **matrizCopia;    // Puntero a la matriz auxiliar utilizada para copiar los nuevos valores
+	float **aux;            // Puntero auxiliar
 
 
-	float **matrizOriginal; //Puntero a la matriz original
-	float **matrizCopia;    //Puntero a la matriz auxiliar utilizada para copiar los nuevos valores
-	float **aux;            //Puntero auxiliar
-
-
-	//Reservo espacio para la matriz original
-	//printf("RESERVANDO DE MEMORIA...\n");
+	// Reservo espacio para la matriz original
 	matrizOriginal  = (float **)malloc(sizeof(float *) * alto);
 	*matrizOriginal = (float *)malloc(sizeof(float) * alto * ancho);
 
-	//Reservo espacio para la matriz copia
+	// Reservo espacio para la matriz copia
 	matrizCopia  = (float **)malloc(sizeof(float *) * alto);
 	*matrizCopia = (float *)malloc(sizeof(float) * alto * ancho);
 
@@ -122,14 +116,14 @@ int main(int argc, char *argv[])
 		exit(5);
 	}
 
-	//Creo los punteros para cada valor de fila
+	// Creo los punteros para cada valor de fila
 	for (m = 0; m < alto; m++)
 	{
 		matrizOriginal[m] = (*matrizOriginal + ancho * m);
 		matrizCopia[m]    = (*matrizCopia + ancho * m);
 	}
 
-	//Inicializo matrizOriginal
+	// Inicializo matrizOriginal
 	int x = i*alto  + (i >= cantFilasExtra ? cantFilasExtra : 0);
 	int y = j*ancho + (j >= cantColExtra ? cantColExtra : 0);
 	for (m = 0; m < alto; m++)
@@ -138,11 +132,8 @@ int main(int argc, char *argv[])
 		{
 			matrizOriginal[m][n] = (x+m) * (Tlado - (x+m) - 1) * (y+n) * (Tlado - (y+n) - 1);
 			matrizCopia[m][n]    = 0;
-			// Donde estan los i y j entre parentesis se deberia cambiar para que cada proceso
-			// inicialice el valor como corresponde
 		}
 	}
-
 
 	int rankVecinoArriba    = rank-cantCol;
 	int rankVecinoAbajo     = rank+cantCol;
@@ -190,63 +181,53 @@ int main(int argc, char *argv[])
 
 
 	double tiempo_trans = 0;
-	//POR AHORA TODOS LOS TAGS SON 1. SI ENVIAS UN DATO CON UN TAG, EL QUE LO RECIBE TIENE QUE ESPERAR EL MISMO TAG (SINO SE TRABA)
-	//fprintf(f, "COMENZANDO COMPUTO...\n");
 	tiempo_trans = sampleTime();
 	for (p = 0; p < pasos; p++)
 	{
 		if (hayAlguienArriba)
-		{ //Envio de fila a arriba
-			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
-			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba); //Arriba
+		{// Envio de fila a arriba
+			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
+			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
 		}
 
 		if (hayAlguienAbajo)
-		{ //Envio de fila a abajo
-			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);  //Abajo
-			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo); //Abajo
+		{ // Envio de fila a abajo
+			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
+			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
 		}
 
 		if (hayAlguienIzq)
-		{//Envio de columna a izquierda
-			// printf("[%d] Tengo uno a mi izquierda\n",rank);
+		{// Envio de columna a izquierda
 			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 		}
 		
 		if (hayAlguienDer)
-		{ //Envio de columna a derecha   
-			// printf("[%d] Tengo uno a mi derecha\n",rank);
+		{// Envio de columna a derecha   
 			MPI_Isend(&matrizOriginal[0][ancho-1], 1, columnaMPI, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
-
-		//Estas iteraciones se pueden hacer independientes de los buffers que recibimos, por lo que podriamos solaparlo con la comunicacion
-		// printf("Voy a calcular los elementos internos de la submatriz\n");
-		#pragma omp parallel
+		#pragma omp parallel for private(n) schedule(static)
+		for (m = 1; m < alto-1; m++) 
 		{
-			#pragma omp for private(n) schedule(static) nowait
-			for (m = 1; m < alto-1; m++) 
+			for (n = 1; n < ancho-1; n++)
 			{
-				for (n = 1; n < ancho-1; n++)
-				{
-					matrizCopia[m][n] = 
-					matrizOriginal[m][n] + 
-						Cx * (matrizOriginal[m+1][n] + 
-						matrizOriginal[m-1][n] - 2 * matrizOriginal[m][n]) + 
-						Cy * (matrizOriginal[m][n+1] + 
-						matrizOriginal[m][n-1] - 2 * matrizOriginal[m][n]);
-				}
+				matrizCopia[m][n] = 
+				matrizOriginal[m][n] + 
+					Cx * (matrizOriginal[m+1][n] + 
+					matrizOriginal[m-1][n] - 2 * matrizOriginal[m][n]) + 
+					Cy * (matrizOriginal[m][n+1] + 
+					matrizOriginal[m][n-1] - 2 * matrizOriginal[m][n]);
 			}
-			//fprintf(f, "Termine calculando los elemnentos internos\n");
-
-			#pragma omp sections
+		}
+		
+		#pragma omp sections
+		{
+			#pragma omp section
 			{
-				// Luego, habria un for por cada lado que depende de un buffer vecino
-				#pragma omp section
 				if (hayAlguienArriba)
-				{  // Fila de arriba
+				{
 					MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
 					for (n = 1; n < ancho-1; n++)
 					{
@@ -255,72 +236,32 @@ int main(int argc, char *argv[])
 							Cx * (matrizOriginal[1][n] + 
 							filaArriba[n] - 2 * matrizOriginal[0][n]) + 
 							Cy * (matrizOriginal[0][n+1] + 
-							matrizOriginal[0][n-1] - 2 * matrizOriginal[0][n]); 
-					}
-					
-					if (hayAlguienIzq)
-					{
-						MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
-						matrizCopia[0][0] = 
-							matrizOriginal[0][0] + 
-							Cx * (matrizOriginal[1][0] + 
-							filaArriba[0] - 2 * matrizOriginal[0][0]) + 
-							Cy * (matrizOriginal[0][1] + 
-							colIzq[0] - 2 * matrizOriginal[0][0]);
-					}
-					
-					if (hayAlguienDer)
-					{
-						MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
-						matrizCopia[0][ancho-1] = 
-							matrizOriginal[0][ancho-1] + 
-							Cx * (matrizOriginal[1][ancho-1] + 
-							filaArriba[ancho-1] - 2 * matrizOriginal[0][ancho-1]) + 
-							Cy * (colDer[0] + 
-							matrizOriginal[0][ancho-2] - 2 * matrizOriginal[0][ancho-1]);
+						matrizOriginal[0][n-1] - 2 * matrizOriginal[0][n]); 
 					}
 				}
+			}
 
-				#pragma omp section
+			#pragma omp section
+			{
 				if (hayAlguienAbajo)
-				{  // Fila de abajo
+				{
 					MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
 					for (n = 1; n < ancho-1; n++)
 					{
 						matrizCopia[alto-1][n] = 
 							matrizOriginal[alto-1][n] + 
 							Cx * (filaAbajo[n] + 
-							matrizOriginal[alto-2][n] - 2 * matrizOriginal[alto-1][n]) + //El alto-2 se rompe si se divide por filas y las filas son muy "finas"
+							matrizOriginal[alto-2][n] - 2 * matrizOriginal[alto-1][n]) + 
 							Cy * (matrizOriginal[alto-1][n+1] + 
 							matrizOriginal[alto-1][n-1] - 2 * matrizOriginal[alto-1][n]);
 					}
-					
-					if (hayAlguienIzq)
-					{
-						MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
-						matrizCopia[alto-1][0] = 
-							matrizOriginal[alto-1][0] + 
-							Cx * (filaAbajo[0] + 
-							matrizOriginal[alto-2][0] - 2 * matrizOriginal[alto-1][0]) + 
-							Cy * (matrizOriginal[alto-1][1] + 
-							colIzq[alto-1] - 2 * matrizOriginal[alto-1][0]);
-					}	
-					
-					if (hayAlguienDer)
-					{
-						MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
-						matrizCopia[alto-1][ancho-1] = 
-							matrizOriginal[alto-1][ancho-1] + 
-							Cx * (filaAbajo[ancho-1] + 
-							matrizOriginal[alto-2][ancho-1] - 2 * matrizOriginal[alto-1][ancho-1]) + 
-							Cy * (colDer[alto-1] + 
-							matrizOriginal[alto-1][ancho-2] - 2 * matrizOriginal[alto-1][ancho-1]); 
-					}
 				}
+			}
 
-				#pragma omp section
+			#pragma omp section
+			{
 				if (hayAlguienIzq)
-				{  // Columna izquierda
+				{
 					MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 					for (m = 1; m < alto-1; m++)
 					{
@@ -332,12 +273,14 @@ int main(int argc, char *argv[])
 							colIzq[m] - 2 * matrizOriginal[m][0]);
 					}
 				}
+			}
 
-				#pragma omp section
+			#pragma omp section
+			{
 				if (hayAlguienDer)
-				{  // Columna derecha
+				{
 					MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
-					for (m = 1 m < alto-1; m++)
+					for (m = 1; m < alto-1; m++)
 					{
 						matrizCopia[m][ancho-1] = 
 							matrizOriginal[m][ancho-1] + 
@@ -350,6 +293,53 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		// ESQUINAS
+		if (hayAlguienArriba)
+		{
+			if (hayAlguienIzq)
+			{
+				matrizCopia[0][0] = 
+					matrizOriginal[0][0] + 
+					Cx * (matrizOriginal[1][0] + 
+					filaArriba[0] - 2 * matrizOriginal[0][0]) + 
+					Cy * (matrizOriginal[0][1] + 
+					colIzq[0] - 2 * matrizOriginal[0][0]);
+			}
+			
+			if (hayAlguienDer)
+			{
+				matrizCopia[0][ancho-1] = 
+					matrizOriginal[0][ancho-1] + 
+					Cx * (matrizOriginal[1][ancho-1] + 
+					filaArriba[ancho-1] - 2 * matrizOriginal[0][ancho-1]) + 
+					Cy * (colDer[0] + 
+					matrizOriginal[0][ancho-2] - 2 * matrizOriginal[0][ancho-1]);
+			}
+		}
+
+		if (hayAlguienAbajo)
+		{
+			if (hayAlguienIzq)
+			{
+				matrizCopia[alto-1][0] = 
+					matrizOriginal[alto-1][0] + 
+					Cx * (filaAbajo[0] + 
+					matrizOriginal[alto-2][0] - 2 * matrizOriginal[alto-1][0]) + 
+					Cy * (matrizOriginal[alto-1][1] + 
+					colIzq[alto-1] - 2 * matrizOriginal[alto-1][0]); 
+			}	
+
+			if (hayAlguienDer)
+			{
+				matrizCopia[alto-1][ancho-1] = 
+					matrizOriginal[alto-1][ancho-1] + 
+					Cx * (filaAbajo[ancho-1] + 
+					matrizOriginal[alto-2][ancho-1] - 2 * matrizOriginal[alto-1][ancho-1]) + 
+					Cy * (colDer[alto-1] + 
+					matrizOriginal[alto-1][ancho-2] - 2 * matrizOriginal[alto-1][ancho-1]); 
+			}
+		}
+		
 		// Realizo el cambio de punteros para que matrizOriginal (P) apunte a la nueva matriz (P+1)
 		aux            = matrizOriginal;
 		matrizOriginal = matrizCopia;
@@ -358,41 +348,38 @@ int main(int argc, char *argv[])
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
-
 	tiempo_trans = sampleTime() - tiempo_trans;
-	//printf("COMPUTO FINALIZADO: OK\n");
-	fprintf(f,"[%d] Tiempo transcurrido: %.21f\n",rank,tiempo_trans );
-	if (hayAlguienArriba)
+	
+	if (rank == 0) 
 	{
-		free(filaArriba);
+		FILE *datos= fopen("datos.txt", "a");
+		if (f == NULL)
+		{
+			printf("ERROR: No se pudo abrir el archivo\n");
+			exit(6);
+		}
+		else
+		{
+			fprintf(datos, "Tiempo transcurrido: %.21f s\n", tiempo_trans);
+			fprintf(datos, "Cantidad de threads: %d\n", omp_get_num_procs()); 
+			fprintf(datos, "Cantidad de procesos: %d\n", cantProcesos);
+			fprintf(datos, "Grilla de %d elementos con %d repeticiones\n\n", Tlado, pasos);
+			fclose(datos);
+		}
 	}
 
-	if (hayAlguienAbajo)
-	{
-		free(filaAbajo);
-	}
 
-	if (hayAlguienIzq)
-	{
-		free(colIzq);
-	}
-
-	if (hayAlguienDer)
-	{
-		free(colDer);
-	}
-
-	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
-	// NOTA: PARA EVALUAR TIEMPOS DE EJECUCION SE PODRIA COMENTAR ESTA SECCION 
-	/*for (m = 0; m < alto; m++)
+	// Imprime en fichero resultados finales de submatrices
+	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
 		{
-			fprintf(f, "%0.1f\t", matrizOriginal[m][n]);
+			fprintf(f, "%8.3f\t", matrizOriginal[m][n]);
 		}
 		fprintf(f, "\n");
-	}*/
+	}
 
+	fclose(f);
 	free(matrizCopia);
 	free(matrizOriginal);
 
@@ -409,7 +396,7 @@ void divisionOptima(int cantProcesos, int *filas, int *columnas)
 
 	for (i = cantProcesos; i > 0; i--)
 	{
-		if ( !(cantProcesos % i) ) // Si i es un divisor
+		if (cantProcesos % i == 0) // Si i es un divisor
 		{
 			fila_tmp  = i;
 			col_tmp   = cantProcesos / i;
@@ -437,22 +424,3 @@ double sampleTime(void)
 
 	return ((double)tv.tv_sec+((double)tv.tv_nsec)/1000000000.0);
 }
-
-/*
-void copiarAArchivo() // NO USAR, SOLO PARA REFERENCIA DE COMO ESCRIBIR EN UN ARCHIVO
-{
-	FILE *f = fopen("output.txt", "w");
-	if(f == NULL){
-		printf("ERROR: No se pudo abrir el archivo");
-		exit(1);
-	}
-
-	fprintf(f,"Matriz Final - %d\n", pasos);
-	for (i = 0; i <  Tlado; i++) {
-		for (j = 0; j < Tlado; j++){
-			fprintf(f, "%8.3f \t", matrizOriginal[i][j]);
-		}
-		fprintf(f,"\n");
-	}
-}
-*/
