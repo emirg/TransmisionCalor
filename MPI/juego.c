@@ -227,18 +227,12 @@ int main(int argc, char *argv[])
 					matrizOriginal[m][n-1] - 2 * matrizOriginal[m][n]);
 			}
 		}
-		
-		// Estas variables se podrian quitar y colocarlas directamente en los 'for'
-		int comienzoIteracionColDer = 1;
-		int comienzoIteracionFilAr  = 1;
-		int finIteracionColDer      = alto-1;
-		int finIteracionFilAr       = ancho-1;
 
 		// Luego, habria un for por cada lado que depende de un buffer vecino
 		if (hayAlguienArriba)
 		{  // Fila de arriba
 			MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
-			for (n = comienzoIteracionFilAr; n < finIteracionFilAr; n++)
+			for (n = 1; n < ancho-1; n++)
 			{
 				matrizCopia[0][n] = 
 					matrizOriginal[0][n] + 
@@ -274,7 +268,7 @@ int main(int argc, char *argv[])
 		if (hayAlguienAbajo)
 		{  // Fila de abajo
 			MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
-			for (n = comienzoIteracionFilAr; n < finIteracionFilAr; n++)
+			for (n = 1; n < ancho-1; n++)
 			{
 				matrizCopia[alto-1][n] = 
 					matrizOriginal[alto-1][n] + 
@@ -311,7 +305,7 @@ int main(int argc, char *argv[])
 		if (hayAlguienIzq)
 		{  // Columna izquierda
 			MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
-			for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
+			for (m = 1; m < alto-1; m++)
 			{
 				matrizCopia[m][0] = 
 					matrizOriginal[m][0] + 
@@ -325,7 +319,7 @@ int main(int argc, char *argv[])
 		if (hayAlguienDer)
 		{  // Columna derecha
 			MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
-			for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
+			for (m = 1; m < alto-1; m++)
 			{
 				matrizCopia[m][ancho-1] = 
 					matrizOriginal[m][ancho-1] + 
@@ -393,7 +387,7 @@ void divisionOptima(int cantProcesos, int *filas, int *columnas)
 
 	for (i = cantProcesos; i > 0; i--)
 	{
-		if ( !(cantProcesos % i) ) // Si i es un divisor
+		if (cantProcesos % i == 0) // Si i es un divisor
 		{
 			fila_tmp  = i;
 			col_tmp   = cantProcesos / i;
