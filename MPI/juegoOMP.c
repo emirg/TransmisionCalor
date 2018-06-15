@@ -157,14 +157,6 @@ int main(int argc, char *argv[])
 	float *filaAbajo;
 	float *colIzq;
 	float *colDer;
-	
-	//Estas dos variables se podrian quitar y colocarlas directamente en los 'for'
-	int comienzoIteracionColDer = 1; 
-	int comienzoIteracionFilAr  = 1; 
-
-	//Estas dos variables se podrian quitar y colocarlas directamente en los 'for'
-	int finIteracionColDer = alto-1; 
-	int finIteracionFilAr  = ancho-1;  
 
 	MPI_Request requestArriba;
 	MPI_Request requestAbajo;
@@ -256,7 +248,7 @@ int main(int argc, char *argv[])
 				if (hayAlguienArriba)
 				{  // Fila de arriba
 					MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
-					for (n = comienzoIteracionFilAr; n < finIteracionFilAr; n++)
+					for (n = 1; n < ancho-1; n++)
 					{
 						matrizCopia[0][n] = 
 							matrizOriginal[0][n] + 
@@ -266,26 +258,26 @@ int main(int argc, char *argv[])
 							matrizOriginal[0][n-1] - 2 * matrizOriginal[0][n]); 
 					}
 					
-					if(hayAlguienIzq){
+					if (hayAlguienIzq)
+					{
 						MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 						matrizCopia[0][0] = 
 							matrizOriginal[0][0] + 
 							Cx * (matrizOriginal[1][0] + 
 							filaArriba[0] - 2 * matrizOriginal[0][0]) + 
 							Cy * (matrizOriginal[0][1] + 
-							colIzq[0] - 2 * matrizOriginal[0][0]); 
-					
+							colIzq[0] - 2 * matrizOriginal[0][0]);
 					}
 					
-					if(hayAlguienDer){
+					if (hayAlguienDer)
+					{
 						MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 						matrizCopia[0][ancho-1] = 
 							matrizOriginal[0][ancho-1] + 
 							Cx * (matrizOriginal[1][ancho-1] + 
 							filaArriba[ancho-1] - 2 * matrizOriginal[0][ancho-1]) + 
 							Cy * (colDer[0] + 
-							matrizOriginal[0][ancho-2] - 2 * matrizOriginal[0][ancho-1]); 
-					
+							matrizOriginal[0][ancho-2] - 2 * matrizOriginal[0][ancho-1]);
 					}
 				}
 
@@ -293,7 +285,7 @@ int main(int argc, char *argv[])
 				if (hayAlguienAbajo)
 				{  // Fila de abajo
 					MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
-					for (n = comienzoIteracionFilAr; n < finIteracionFilAr; n++)
+					for (n = 1; n < ancho-1; n++)
 					{
 						matrizCopia[alto-1][n] = 
 							matrizOriginal[alto-1][n] + 
@@ -303,18 +295,19 @@ int main(int argc, char *argv[])
 							matrizOriginal[alto-1][n-1] - 2 * matrizOriginal[alto-1][n]);
 					}
 					
-					if(hayAlguienIzq){
+					if (hayAlguienIzq)
+					{
 						MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 						matrizCopia[alto-1][0] = 
 							matrizOriginal[alto-1][0] + 
 							Cx * (filaAbajo[0] + 
 							matrizOriginal[alto-2][0] - 2 * matrizOriginal[alto-1][0]) + 
 							Cy * (matrizOriginal[alto-1][1] + 
-							colIzq[alto-1] - 2 * matrizOriginal[alto-1][0]); 
-					
+							colIzq[alto-1] - 2 * matrizOriginal[alto-1][0]);
 					}	
 					
-					if(hayAlguienDer){
+					if (hayAlguienDer)
+					{
 						MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 						matrizCopia[alto-1][ancho-1] = 
 							matrizOriginal[alto-1][ancho-1] + 
@@ -322,7 +315,6 @@ int main(int argc, char *argv[])
 							matrizOriginal[alto-2][ancho-1] - 2 * matrizOriginal[alto-1][ancho-1]) + 
 							Cy * (colDer[alto-1] + 
 							matrizOriginal[alto-1][ancho-2] - 2 * matrizOriginal[alto-1][ancho-1]); 
-					
 					}
 				}
 
@@ -330,7 +322,7 @@ int main(int argc, char *argv[])
 				if (hayAlguienIzq)
 				{  // Columna izquierda
 					MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
-					for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
+					for (m = 1; m < alto-1; m++)
 					{
 						matrizCopia[m][0] = 
 							matrizOriginal[m][0] + 
@@ -340,12 +332,12 @@ int main(int argc, char *argv[])
 							colIzq[m] - 2 * matrizOriginal[m][0]);
 					}
 				}
-				
+
 				#pragma omp section
 				if (hayAlguienDer)
 				{  // Columna derecha
 					MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
-					for (m = comienzoIteracionColDer; m < finIteracionColDer; m++)
+					for (m = 1 m < alto-1; m++)
 					{
 						matrizCopia[m][ancho-1] = 
 							matrizOriginal[m][ancho-1] + 
@@ -363,7 +355,6 @@ int main(int argc, char *argv[])
 		matrizOriginal = matrizCopia;
 		matrizCopia    = aux;
 
-		// ANTES DE IR AL SIGUIENTE PASO SE DEBERIA HACER UN WAIT (O ALGO ASI) PARA ESPERAR A LOS OTROS PROCESOS
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
