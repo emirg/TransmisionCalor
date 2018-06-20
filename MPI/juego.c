@@ -2,7 +2,6 @@
 #include<stdlib.h>
 #include<time.h>  
 #include<unistd.h>
-#include<mpi.h>
 #include<string.h>
 
 typedef enum { false, true } bool;
@@ -204,8 +203,6 @@ int main(int argc, char *argv[])
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
-
-		#pragma omp parallel for private(m,n) schedule(static)
 		for (m = 1; m < alto-1; m++)
 		{
 			for (n = 1; n < ancho-1; n++)
@@ -363,9 +360,9 @@ int main(int argc, char *argv[])
 	fclose(f);
 
 	if (hayAlguienArriba) free(filaArriba);
-	if (hayAlguienAbajo) free(filaAbajo);
-	if (hayAlguienIzq) free(colIzq);
-	if (hayAlguienDer) free(colDer);
+	if (hayAlguienAbajo)  free(filaAbajo);
+	if (hayAlguienIzq)    free(colIzq);
+	if (hayAlguienDer)    free(colDer);
 	free(matrizCopia);
 	free(matrizOriginal);
 
