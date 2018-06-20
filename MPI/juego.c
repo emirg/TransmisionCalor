@@ -18,12 +18,9 @@ int main(int argc, char *argv[])
 {
 	MPI_Init(&argc,&argv);
 
-	int rank, cantProcesos, namelen;
-	char nombreNodo[MPI_MAX_PROCESSOR_NAME];
-
+	int rank, cantProcesos;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &cantProcesos);
-	MPI_Get_processor_name(nombreNodo, &namelen);
 
 	if (argc != 3)
 	{
@@ -34,7 +31,6 @@ int main(int argc, char *argv[])
 		MPI_Finalize();
 		exit(1);
 	}
-
 
 	int Tlado = atoi(argv[1]);  // Tamaño de la matriz cuadrada - N
 	int pasos = atoi(argv[2]);  // Cantidad de pasos
@@ -74,12 +70,12 @@ int main(int argc, char *argv[])
 	char nombre[30];
 	sprintf(nombre, "subgrid_%d_%d.out", i, j);
 
-	/*FILE *f = fopen(nombre, "w");
+	FILE *f = fopen(nombre, "w");
 	if (f == NULL)
 	{
 		printf("ERROR: No se pudo abrir el archivo");
 		exit(4);
-	}*/
+	}
 
 	alto  = Tlado / cantFilas; // Dividimos el alto en la cantidad de filas mas optima
 	ancho = Tlado / cantCol;   // Dividimos el ancho en la cantidad de columnas mas optima
@@ -99,13 +95,11 @@ int main(int argc, char *argv[])
 	// Una vez que se tienen los datos, cada nodo deberia reservar memoria acorde a lo que recibio y calcular los iniciales
 	// Antes de empezar a calcular, deberia solicitar los datos de sus vecinos que necesitara (no bloqueante asi puede
 	// empezar a calcular y poner una barrera cuando vaya a calcular un valor del cual requiera un vecino)
-
 	float **matrizOriginal; // Puntero a la matriz original
 	float **matrizCopia;    // Puntero a la matriz auxiliar utilizada para copiar los nuevos valores
 	float **aux;            // Puntero auxiliar
 
 	// Reservo espacio para la matriz original
-	// printf("RESERVANDO DE MEMORIA...\n");
 	matrizOriginal  = (float **)malloc(sizeof(float *) * alto);
 	*matrizOriginal = (float *)malloc(sizeof(float) * alto * ancho);
 
@@ -137,7 +131,6 @@ int main(int argc, char *argv[])
 			matrizCopia[m][n]    = 0;
 		}
 	}
-
 
 	int rankVecinoArriba    = rank-cantCol;
 	int rankVecinoAbajo     = rank+cantCol;
@@ -186,36 +179,34 @@ int main(int argc, char *argv[])
 	double tiempo_trans = 0;
 	tiempo_trans = sampleTime();
 	for (p = 0; p < pasos; p++)
-	{  // TODOS LOS TAGS SON 1. SI ENVIAS UN DATO CON UN TAG, EL QUE LO RECIBE TIENE QUE ESPERAR EL MISMO TAG (SINO SE TRABA)
+	{
 		if (hayAlguienArriba)
-		{  // Envio de fila a arriba
+		{   // Envio de fila a arriba
 			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
 			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
 		}
 
 		if (hayAlguienAbajo)
-		{  // Envio de fila a abajo
+		{   // Envio de fila a abajo
 			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
 			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
 		}
 
 		if (hayAlguienIzq)
-		{  // Envio de columna a izquierda
+		{   // Envio de columna a izquierda
 			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 		}
 		
 		if (hayAlguienDer)
-		{  // Envio de columna a derecha
+		{   // Envio de columna a derecha
 			MPI_Isend(&matrizOriginal[0][ancho-1], 1, columnaMPI, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
 
-		// Estas iteraciones se pueden hacer independientes de los buffers que recibimos
-		// por lo que podriamos solaparlo con la comunicacion
-		// printf("Voy a calcular los elementos internos de la submatriz\n");
-		for (m = 1; m < alto-1; m++) 
+		#pragma omp parallel for private(m,n) schedule(static)
+		for (m = 1; m < alto-1; m++)
 		{
 			for (n = 1; n < ancho-1; n++)
 			{
@@ -227,10 +218,11 @@ int main(int argc, char *argv[])
 					matrizOriginal[m][n-1] - 2 * matrizOriginal[m][n]);
 			}
 		}
+		
 
-		// Luego, habria un for por cada lado que depende de un buffer vecino
+		// BORDES
 		if (hayAlguienArriba)
-		{  // Fila de arriba
+		{   // Fila de arriba
 			MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
 			for (n = 1; n < ancho-1; n++)
 			{
@@ -266,7 +258,7 @@ int main(int argc, char *argv[])
 		}
 
 		if (hayAlguienAbajo)
-		{  // Fila de abajo
+		{   // Fila de abajo
 			MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
 			for (n = 1; n < ancho-1; n++)
 			{
@@ -303,7 +295,7 @@ int main(int argc, char *argv[])
 		}
 
 		if (hayAlguienIzq)
-		{  // Columna izquierda
+		{   // Columna izquierda
 			MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 			for (m = 1; m < alto-1; m++)
 			{
@@ -317,7 +309,7 @@ int main(int argc, char *argv[])
 		}
 		
 		if (hayAlguienDer)
-		{  // Columna derecha
+		{   // Columna derecha
 			MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 			for (m = 1; m < alto-1; m++)
 			{
@@ -339,38 +331,41 @@ int main(int argc, char *argv[])
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	tiempo_trans = sampleTime() - tiempo_trans;
-
-	if (hayAlguienArriba)
+	
+	if (rank == 0)
 	{
-		free(filaArriba);
-	}
-
-	if (hayAlguienAbajo)
-	{
-		free(filaAbajo);
-	}
-
-	if (hayAlguienIzq)
-	{
-		free(colIzq);
-	}
-
-	if (hayAlguienDer)
-	{
-		free(colDer);
+		FILE *datos = fopen("datos.txt", "a");
+		if (f == NULL)
+		{
+			printf("ERROR: No se pudo abrir el archivo\n");
+			exit(6);
+		}
+		else
+		{
+			fprintf(datos, "Tiempo transcurrido: %21f s\n", tiempo_trans);
+			fprintf(datos, "Cantidad de procesos: %d\n", cantProcesos);
+			fprintf(datos, "Grilla de %d elementos con %d repeticiones\n", Tlado, pasos);
+			fprintf(datos, "\n");
+			fclose(datos);
+		}
 	}
 
 	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
-	// NOTA: PARA EVALUAR TIEMPOS DE EJECUCION SE COMENTA ESTA SECCION 
-	/*for (m = 0; m < alto; m++)
+	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
 		{
-			fprintf(f, "%0.1f\t", matrizOriginal[m][n]);
+			fprintf(f, "%8.3f\t", matrizOriginal[m][n]);
 		}
 		fprintf(f, "\n");
-	}*/
+	}
+	
+	fclose(f);
 
+	if (hayAlguienArriba) free(filaArriba);
+	if (hayAlguienAbajo) free(filaAbajo);
+	if (hayAlguienIzq) free(colIzq);
+	if (hayAlguienDer) free(colDer);
 	free(matrizCopia);
 	free(matrizOriginal);
 
