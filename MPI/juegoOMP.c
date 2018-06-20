@@ -4,7 +4,6 @@
 #include<unistd.h>
 #include<mpi.h>
 #include<string.h>
-#include<omp.h>
 
 typedef enum { false, true } bool;
 
@@ -32,7 +31,6 @@ int main(int argc, char *argv[])
 		MPI_Finalize();
 		exit(1);
 	}
-
 
 	int Tlado = atoi(argv[1]);  // Tamaño de la matriz cuadrada - N
 	int pasos = atoi(argv[2]);  // Cantidad de pasos
@@ -101,7 +99,6 @@ int main(int argc, char *argv[])
 	float **matrizCopia;    // Puntero a la matriz auxiliar utilizada para copiar los nuevos valores
 	float **aux;            // Puntero auxiliar
 
-
 	// Reservo espacio para la matriz original
 	matrizOriginal  = (float **)malloc(sizeof(float *) * alto);
 	*matrizOriginal = (float *)malloc(sizeof(float) * alto * ancho);
@@ -149,11 +146,6 @@ int main(int argc, char *argv[])
 	float *colIzq;
 	float *colDer;
 
-	MPI_Request requestArriba;
-	MPI_Request requestAbajo;
-	MPI_Request requestIzq;
-	MPI_Request requestDer;
-
 	bool hayAlguienArriba = i-1 >= 0;
 	bool hayAlguienAbajo  = i+1 < cantFilas;
 	bool hayAlguienIzq    = j-1 >= 0;
@@ -179,37 +171,45 @@ int main(int argc, char *argv[])
 		colDer = malloc(sizeof(float) * alto);
 	}
 
+	MPI_Request requestArriba;
+	MPI_Request requestAbajo;
+	MPI_Request requestIzq;
+	MPI_Request requestDer;
 
 	double tiempo_trans = 0;
 	tiempo_trans = sampleTime();
 	for (p = 0; p < pasos; p++)
 	{
 		if (hayAlguienArriba)
-		{// Envio de fila a arriba
+		{   // Envio de fila a arriba
 			MPI_Isend(matrizOriginal[0], ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
 			MPI_Irecv(filaArriba, ancho, MPI_FLOAT, rankVecinoArriba, 1, MPI_COMM_WORLD, &requestArriba);
 		}
 
 		if (hayAlguienAbajo)
-		{ // Envio de fila a abajo
+		{   // Envio de fila a abajo
 			MPI_Isend(matrizOriginal[alto-1], ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
 			MPI_Irecv(filaAbajo, ancho, MPI_FLOAT, rankVecinoAbajo, 1, MPI_COMM_WORLD, &requestAbajo);
 		}
 
 		if (hayAlguienIzq)
-		{// Envio de columna a izquierda
+		{   // Envio de columna a izquierda
 			MPI_Isend(matrizOriginal[0], 1, columnaMPI, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 			MPI_Irecv(colIzq, alto, MPI_FLOAT, rankVecinoIzquierda, 1, MPI_COMM_WORLD, &requestIzq);
 		}
 		
 		if (hayAlguienDer)
-		{// Envio de columna a derecha   
+		{   // Envio de columna a derecha
 			MPI_Isend(&matrizOriginal[0][ancho-1], 1, columnaMPI, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
-		#pragma omp parallel for private(n) schedule(static)
-		for (m = 1; m < alto-1; m++) 
+
+		// Estas iteraciones se pueden hacer independientes de los buffers que recibimos
+		// por lo que podriamos solaparlo con la comunicacion
+		// printf("Voy a calcular los elementos internos de la submatriz\n");
+		#pragma omp parallel for private(m,n) schedule(static)
+		for (m = 1; m < alto-1; m++)
 		{
 			for (n = 1; n < ancho-1; n++)
 			{
@@ -222,105 +222,61 @@ int main(int argc, char *argv[])
 			}
 		}
 		
-		#pragma omp sections
-		{
-			#pragma omp section
-			{
-				if (hayAlguienArriba)
-				{
-					MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
-					for (n = 1; n < ancho-1; n++)
-					{
-						matrizCopia[0][n] = 
-							matrizOriginal[0][n] + 
-							Cx * (matrizOriginal[1][n] + 
-							filaArriba[n] - 2 * matrizOriginal[0][n]) + 
-							Cy * (matrizOriginal[0][n+1] + 
-						matrizOriginal[0][n-1] - 2 * matrizOriginal[0][n]); 
-					}
-				}
-			}
 
-			#pragma omp section
-			{
-				if (hayAlguienAbajo)
-				{
-					MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
-					for (n = 1; n < ancho-1; n++)
-					{
-						matrizCopia[alto-1][n] = 
-							matrizOriginal[alto-1][n] + 
-							Cx * (filaAbajo[n] + 
-							matrizOriginal[alto-2][n] - 2 * matrizOriginal[alto-1][n]) + 
-							Cy * (matrizOriginal[alto-1][n+1] + 
-							matrizOriginal[alto-1][n-1] - 2 * matrizOriginal[alto-1][n]);
-					}
-				}
-			}
-
-			#pragma omp section
-			{
-				if (hayAlguienIzq)
-				{
-					MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
-					for (m = 1; m < alto-1; m++)
-					{
-						matrizCopia[m][0] = 
-							matrizOriginal[m][0] + 
-							Cx * (matrizOriginal[m+1][0] + 
-							matrizOriginal[m-1][0] - 2 * matrizOriginal[m][0]) + 
-							Cy * (matrizOriginal[m][1] + 
-							colIzq[m] - 2 * matrizOriginal[m][0]);
-					}
-				}
-			}
-
-			#pragma omp section
-			{
-				if (hayAlguienDer)
-				{
-					MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
-					for (m = 1; m < alto-1; m++)
-					{
-						matrizCopia[m][ancho-1] = 
-							matrizOriginal[m][ancho-1] + 
-							Cx * (matrizOriginal[m+1][ancho-1] + 
-							matrizOriginal[m-1][ancho-1] - 2 * matrizOriginal[m][ancho-1]) + 
-							Cy * (colDer[m] + 
-							matrizOriginal[m][ancho-2] - 2 * matrizOriginal[m][ancho-1]);
-					}
-				}
-			}
-		}
-
-		// ESQUINAS
+		// BORDES
 		if (hayAlguienArriba)
-		{
+		{   // Fila de arriba
+			MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
+			for (n = 1; n < ancho-1; n++)
+			{
+				matrizCopia[0][n] = 
+					matrizOriginal[0][n] + 
+					Cx * (matrizOriginal[1][n] + 
+					filaArriba[n] - 2 * matrizOriginal[0][n]) + 
+					Cy * (matrizOriginal[0][n+1] + 
+					matrizOriginal[0][n-1] - 2 * matrizOriginal[0][n]); 
+			}
+			
 			if (hayAlguienIzq)
 			{
+				MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 				matrizCopia[0][0] = 
 					matrizOriginal[0][0] + 
 					Cx * (matrizOriginal[1][0] + 
 					filaArriba[0] - 2 * matrizOriginal[0][0]) + 
 					Cy * (matrizOriginal[0][1] + 
-					colIzq[0] - 2 * matrizOriginal[0][0]);
+					colIzq[0] - 2 * matrizOriginal[0][0]); 
 			}
 			
 			if (hayAlguienDer)
 			{
+				MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 				matrizCopia[0][ancho-1] = 
 					matrizOriginal[0][ancho-1] + 
 					Cx * (matrizOriginal[1][ancho-1] + 
 					filaArriba[ancho-1] - 2 * matrizOriginal[0][ancho-1]) + 
 					Cy * (colDer[0] + 
-					matrizOriginal[0][ancho-2] - 2 * matrizOriginal[0][ancho-1]);
+					matrizOriginal[0][ancho-2] - 2 * matrizOriginal[0][ancho-1]); 
 			}
 		}
 
 		if (hayAlguienAbajo)
-		{
+		{   // Fila de abajo
+			MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
+			for (n = 1; n < ancho-1; n++)
+			{
+				matrizCopia[alto-1][n] = 
+					matrizOriginal[alto-1][n] + 
+					Cx * (filaAbajo[n] + 
+					matrizOriginal[alto-2][n] - 2 * matrizOriginal[alto-1][n]) + 
+					Cy * (matrizOriginal[alto-1][n+1] + 
+					matrizOriginal[alto-1][n-1] - 2 * matrizOriginal[alto-1][n]);
+					// El alto-2 se rompe si se divide por filas y las filas son muy "finas"
+			}
+			
 			if (hayAlguienIzq)
 			{
+				MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
 				matrizCopia[alto-1][0] = 
 					matrizOriginal[alto-1][0] + 
 					Cx * (filaAbajo[0] + 
@@ -328,9 +284,10 @@ int main(int argc, char *argv[])
 					Cy * (matrizOriginal[alto-1][1] + 
 					colIzq[alto-1] - 2 * matrizOriginal[alto-1][0]); 
 			}	
-
+			
 			if (hayAlguienDer)
 			{
+				MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
 				matrizCopia[alto-1][ancho-1] = 
 					matrizOriginal[alto-1][ancho-1] + 
 					Cx * (filaAbajo[ancho-1] + 
@@ -339,20 +296,48 @@ int main(int argc, char *argv[])
 					matrizOriginal[alto-1][ancho-2] - 2 * matrizOriginal[alto-1][ancho-1]); 
 			}
 		}
+
+		if (hayAlguienIzq)
+		{   // Columna izquierda
+			MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
+			for (m = 1; m < alto-1; m++)
+			{
+				matrizCopia[m][0] = 
+					matrizOriginal[m][0] + 
+					Cx * (matrizOriginal[m+1][0] + 
+					matrizOriginal[m-1][0] - 2 * matrizOriginal[m][0]) + 
+					Cy * (matrizOriginal[m][1] + 
+					colIzq[m] - 2 * matrizOriginal[m][0]);
+			}
+		}
 		
+		if (hayAlguienDer)
+		{   // Columna derecha
+			MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
+			for (m = 1; m < alto-1; m++)
+			{
+				matrizCopia[m][ancho-1] = 
+					matrizOriginal[m][ancho-1] + 
+					Cx * (matrizOriginal[m+1][ancho-1] + 
+					matrizOriginal[m-1][ancho-1] - 2 * matrizOriginal[m][ancho-1]) + 
+					Cy * (colDer[m] + 
+					matrizOriginal[m][ancho-2] - 2 * matrizOriginal[m][ancho-1]);
+			}
+		}
+
 		// Realizo el cambio de punteros para que matrizOriginal (P) apunte a la nueva matriz (P+1)
 		aux            = matrizOriginal;
 		matrizOriginal = matrizCopia;
 		matrizCopia    = aux;
 
+		// ESPERA A LOS OTROS PROCESOS
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
-
 	tiempo_trans = sampleTime() - tiempo_trans;
 	
-	if (rank == 0) 
+	if (rank == 0)
 	{
-		FILE *datos= fopen("datos.txt", "a");
+		FILE *datos = fopen("datos.txt", "a");
 		if (f == NULL)
 		{
 			printf("ERROR: No se pudo abrir el archivo\n");
@@ -360,16 +345,15 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			fprintf(datos, "Tiempo transcurrido: %.21f s\n", tiempo_trans);
-			fprintf(datos, "Cantidad de threads: %d\n", omp_get_num_procs()); 
+			fprintf(datos, "Tiempo transcurrido: %21f s\n", tiempo_trans);
 			fprintf(datos, "Cantidad de procesos: %d\n", cantProcesos);
-			fprintf(datos, "Grilla de %d elementos con %d repeticiones\n\n", Tlado, pasos);
+			fprintf(datos, "Grilla de %d elementos con %d repeticiones\n", Tlado, pasos);
+			fprintf(datos, "\n");
 			fclose(datos);
 		}
 	}
 
-
-	// Imprime en fichero resultados finales de submatrices
+	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
@@ -378,8 +362,13 @@ int main(int argc, char *argv[])
 		}
 		fprintf(f, "\n");
 	}
-
+	
 	fclose(f);
+
+	if (hayAlguienArriba) free(filaArriba);
+	if (hayAlguienAbajo)  free(filaAbajo);
+	if (hayAlguienIzq)    free(colIzq);
+	if (hayAlguienDer)    free(colDer);
 	free(matrizCopia);
 	free(matrizOriginal);
 
@@ -401,7 +390,8 @@ void divisionOptima(int cantProcesos, int *filas, int *columnas)
 			fila_tmp  = i;
 			col_tmp   = cantProcesos / i;
 			distancia = fila_tmp - col_tmp;
-			// termina para evitar repetidos (3x2 == 2x3)
+
+			// Evitar repetidos (3x2 == 2x3)
 			if (distancia < 0)
 			{
 				break;
