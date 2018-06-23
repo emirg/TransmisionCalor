@@ -3,6 +3,7 @@
 #include<time.h>  
 #include<unistd.h>
 #include<string.h>
+#include<mpi.h>
 
 typedef enum { false, true } bool;
 
