@@ -6,6 +6,10 @@
 #include <string.h>
 #include "header.h"
 
+#ifdef conOMP
+#include <omp.h>
+#endif
+
 // Prototipos: permiten poner las funciones debajo de main
 double sampleTime(void);
 void divisionOptima(int, int*, int*);
@@ -202,6 +206,9 @@ int main(int argc, char *argv[])
 			MPI_Irecv(colDer, alto, MPI_FLOAT, rankVecinoDerecha, 1, MPI_COMM_WORLD, &requestDer);
 		}
 
+		#ifdef conOMP
+		#pragma omp parallel for private(m,n) schedule(static)
+		#endif
 		for (m = 1; m < alto-1; m++)
 		{
 			for (n = 1; n < ancho-1; n++)
@@ -220,6 +227,9 @@ int main(int argc, char *argv[])
 		if (hayAlguienArriba)
 		{   // Fila de arriba
 			MPI_Wait(&requestArriba, MPI_STATUS_IGNORE);
+			#ifdef conOMP
+			#pragma omp parallel for private(n) schedule(static)
+			#endif
 			for (n = 1; n < ancho-1; n++)
 			{
 				matrizCopia[0][n] = 
@@ -256,6 +266,9 @@ int main(int argc, char *argv[])
 		if (hayAlguienAbajo)
 		{   // Fila de abajo
 			MPI_Wait(&requestAbajo, MPI_STATUS_IGNORE);
+			#ifdef conOMP
+			#pragma omp parallel for private(n) schedule(static)
+			#endif
 			for (n = 1; n < ancho-1; n++)
 			{
 				matrizCopia[alto-1][n] = 
@@ -293,6 +306,9 @@ int main(int argc, char *argv[])
 		if (hayAlguienIzq)
 		{   // Columna izquierda
 			MPI_Wait(&requestIzq, MPI_STATUS_IGNORE);
+			#ifdef conOMP
+			#pragma omp parallel for private(m) schedule(static)
+			#endif
 			for (m = 1; m < alto-1; m++)
 			{
 				matrizCopia[m][0] = 
@@ -307,6 +323,9 @@ int main(int argc, char *argv[])
 		if (hayAlguienDer)
 		{   // Columna derecha
 			MPI_Wait(&requestDer, MPI_STATUS_IGNORE);
+			#ifdef conOMP
+			#pragma omp parallel for private(m) schedule(static)
+			#endif
 			for (m = 1; m < alto-1; m++)
 			{
 				matrizCopia[m][ancho-1] = 
