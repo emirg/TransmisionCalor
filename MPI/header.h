@@ -1,4 +1,7 @@
-// Salida a archivo: comentar para que no salga
+// Habilitar OMP sobre MPI: comentar para tener MPI puro
+#define conOMP
+
+// Salida a archivo de resultados parciales de submatrices: comentar para omitir
 #define conSalida
 
 // Tipo boolean
