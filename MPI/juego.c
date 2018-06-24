@@ -1,14 +1,10 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<time.h>  
-#include<unistd.h>
-#include<string.h>
-#include<mpi.h>
-
-typedef enum { false, true } bool;
-
-const float Cx = 0.1;
-const float Cy = 0.1;
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>  
+#include <unistd.h>
+#include <mpi.h>
+#include <string.h>
+#include "header.h"
 
 // Prototipos: permiten poner las funciones debajo de main
 double sampleTime(void);
@@ -67,6 +63,7 @@ int main(int argc, char *argv[])
 	i = rank / cantCol;
 	j = rank % cantCol;
 
+	#ifdef conSalida
 	char nombre[30];
 	sprintf(nombre, "subgrid_%d_%d.out", i, j);
 
@@ -76,6 +73,7 @@ int main(int argc, char *argv[])
 		printf("ERROR: No se pudo abrir el archivo");
 		exit(4);
 	}
+	#endif
 
 	alto  = Tlado / cantFilas; // Dividimos el alto en la cantidad de filas mas optima
 	ancho = Tlado / cantCol;   // Dividimos el ancho en la cantidad de columnas mas optima
@@ -349,6 +347,7 @@ int main(int argc, char *argv[])
 	}
 
 	// IMPRIMIR EN FICHERO LOS RESULTADOS DE LAS SUBMATRICES
+	#ifdef conSalida
 	for (m = 0; m < alto; m++)
 	{
 		for (n = 0; n < ancho; n++)
@@ -357,8 +356,8 @@ int main(int argc, char *argv[])
 		}
 		fprintf(f, "\n");
 	}
-	
 	fclose(f);
+	#endif
 
 	if (hayAlguienArriba) free(filaArriba);
 	if (hayAlguienAbajo)  free(filaAbajo);
